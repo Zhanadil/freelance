@@ -24,7 +24,7 @@ const applicationSchema = mongoose.Schema({
         enum: ['student', 'company'],
     },
     coverLetter: String,
-    newBounty: Number,
+    newCost: Number,
     studentDiscarded: Boolean,
     companyDiscarded: Boolean,
 });

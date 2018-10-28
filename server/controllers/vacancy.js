@@ -217,7 +217,7 @@ module.exports = {
         }
 
         var newCost = null;
-        if (req.body.newBounty) {
+        if (req.body.newCost) {
             newCost = req.body.newCost;
         }
 
@@ -276,7 +276,7 @@ module.exports = {
             status: "pending",
             sender: "student",
             coverLetter,
-            newBounty,
+            newCost,
             studentDiscarded: false,
             companyDiscarded: false,
         });
@@ -335,7 +335,7 @@ module.exports = {
             return res.status(500).send(err.message);
         }
 
-        vacancy.maxSalary = application.newBounty || vacancy.maxSalary;
+        vacancy.maxSalary = application.newCost || vacancy.maxSalary;
 
         // Переносим задачу в список текущих
         var ongoingTask;

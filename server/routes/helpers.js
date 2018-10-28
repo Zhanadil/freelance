@@ -32,7 +32,7 @@ const newVacancySchema = joi.object().keys({
 const studentVacancyApplySchema = joi.object().keys({
     vacancyId: joi.string().required(),
     coverLetter: joi.string(),
-    newBounty: joi.number(),
+    newCost: joi.number(),
 });
 const studentVacancyApplicationSchema = joi.object().keys({
     vacancyId: joi.string().required(),
