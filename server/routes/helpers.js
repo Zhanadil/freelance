@@ -25,7 +25,7 @@ const newVacancySchema = joi.object().keys({
     cost: joi.number(),
     vacancyField: joi.string().required(),
     vacancyName: joi.string().required(),
-    deadline: joi.string().required(),
+    deadline: joi.date().min('now').required(),
 });
 const studentVacancyApplySchema = joi.object().keys({
     vacancyId: joi.string().required(),

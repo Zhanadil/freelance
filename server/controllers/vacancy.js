@@ -48,12 +48,11 @@ module.exports = {
     // }
     newVacancy: async (req, res, next) => {
         var details = req.body;
-        details.companyId = req.account.id;
-        details.deadline = new Date(details.deadline);
 
         // Find Company which creates the vacancy.
         const company = req.account;
 
+        details.companyId = company.id;
         details.companyName = company.name;
 
         // Create new vacancy.

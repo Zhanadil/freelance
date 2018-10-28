@@ -50,6 +50,10 @@ ongoingTaskSchema.add({
         enum: ['ongoing', 'completed'],
     },
     freelancerId: String,
+    startDate: {
+        type: Date,
+        default: Date.now
+    },
 });
 
 const application = mongoose.model('application', applicationSchema);
