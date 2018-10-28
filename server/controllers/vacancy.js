@@ -334,6 +334,10 @@ module.exports = {
             return res.status(400).send('application not found');
         }
 
+        if (!application.isActive) {
+            return res.status(400).send('application inactive, cannot accept');
+        }
+
         // Деактивируем заявки, принять их уже нельзя, отказаться можно если
         // твоя заявка не принята
         Application.updateMany({
@@ -441,6 +445,58 @@ module.exports = {
         }
 
         return res.status(200).send(ongoingTask);
+    },
+
+    // Компания может отменить заявку если она не была принята.
+    // Вместо этого нужно расторгнуть контракт (/company/vacancy/revoke)
+    companyCancelApplication: async (req, res, next) => {
+        const { vacancyId, studentId } = req.body;
+        const vacancyPromise = OngoingTask.findById(vacancyId);
+        // Находим заявку
+        var [err, application] = await to(
+            Application.findOne({
+                vacancyId,
+                studentId,
+            })
+        );
+        if (err) {
+            return res.status(500).send(err.message);
+        }
+        if (!application) {
+            return res.status(400).send('application not found');
+        }
+
+        // Находим задачу в списке текущих
+        var ongoingTask;
+        [err, ongoingTask] = await to(
+            vacancyPromise
+        );
+        if (err) {
+            return res.status(500).send(err.message);
+        }
+        // Если задача нашлась в списке текущих и айди работника над задачей
+        // совпадает с работником в заявке, то значит он работает над ней.
+        // И отменить заявку он уже не может.
+        if (ongoingTask && ongoingTask.freelancerId === studentId) {
+            return res.status(400).send('company cannot cancel ongoing application');
+        }
+
+        // Компания не может отменить запрос студента, она может его отклонить
+        if (application.sender === 'student') {
+            return res.status(400).send('company cannot cancel student\'s request');
+        }
+
+        application.status = 'canceled';
+        [err] = await to(
+            application.save()
+        );
+        if (err) {
+            return res.status(500).send(err.message);
+        }
+
+        return res.status(200).json({
+            application
+        });
     },
 
     // Отменить заявку можно всем кроме работника который решает задачу
