@@ -1,0 +1,7 @@
+{
+    "DBHost": "mongodb://user_rw:123321@localhost:27017/love2work_dev",
+    "LOGS_DIRECTORY": "/srv/love2work/dev/logs",
+    "RESOURCES_DIRECTORY": "/srv/love2work/dev/resources",
+    "FILE_SERVER_HOST": "localhost",
+    "FILE_SERVER_PORT": 4000
+}

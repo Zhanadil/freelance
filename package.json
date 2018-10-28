@@ -1,0 +1,61 @@
+{
+  "name": "testauth",
+  "version": "1.0.0",
+  "main": "server.js",
+  "author": "john",
+  "license": "MIT",
+  "dependencies": {
+    "all": "0.0.0",
+    "await-to-js": "^2.0.1",
+    "bcrypt": "^3.0.0",
+    "body-parser": "^1.18.3",
+    "chai-as-promised": "^7.1.1",
+    "config": "^1.31.0",
+    "cors": "^2.8.4",
+    "cross-env": "^5.2.0",
+    "express": "^4.16.3",
+    "express-fileupload": "^0.4.0",
+    "express-promise-router": "^3.0.3",
+    "faker": "^4.1.0",
+    "form-data": "^2.3.3",
+    "fs": "0.0.1-security",
+    "joi": "^13.4.0",
+    "jsonwebtoken": "^8.3.0",
+    "lodash": "^4.17.10",
+    "module-alias": "^2.1.0",
+    "mongoose": "^5.2.5",
+    "morgan": "^1.9.0",
+    "nanoid": "^1.2.3",
+    "nodemailer": "^4.6.8",
+    "passport": "^0.4.0",
+    "passport-google-plus-token": "^2.1.0",
+    "passport-jwt": "^4.0.0",
+    "passport-local": "^1.0.0",
+    "socket.io": "^2.1.1",
+    "socketio-auth": "^0.1.1",
+    "winston": "^3.0.0"
+  },
+  "scripts": {
+    "server-prod": "cross-env NODE_ENV=production nodemon index.js",
+    "server-dev": "cross-env NODE_ENV=dev nodemon index.js",
+    "test": "cross-env NODE_ENV=test mocha --timeout 4000"
+  },
+  "_moduleAliases": {
+    "@models": "server/models",
+    "@helpers": "server/helpers",
+    "@routes": "server/routes",
+    "@controllers": "server/controllers",
+    "@socket-controllers": "server/socket-controllers",
+    "@configuration": "server/configuration",
+    "@root": "server",
+    "@project_root": ".",
+    "@test": "test"
+  },
+  "description": "",
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "chai-http": "^4.0.0",
+    "locus": "^2.0.1",
+    "mocha": "^5.2.0"
+  }
+}
