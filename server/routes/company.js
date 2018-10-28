@@ -89,7 +89,7 @@ privateRouter.post('/update-profile', ProfileController.companyUpdateProfile);
 privateRouter.post('/image-avatar',
     ProfileController.companyUpdateImage(path.join(config.RESOURCES_DIRECTORY, 'avatar/company')));
 
-privateRouter.put('/document',
+privateRouter.post('/document',
     StorageController.limitFileSize(5000000), // Лимит 5МБ
     StorageController.uploadDocument('company')
 );
