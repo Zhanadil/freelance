@@ -35,8 +35,7 @@ const applicationSchema = mongoose.Schema({
 const taskSchema = mongoose.Schema({
     description: String,
     demands: [String],
-    type: [String],
-    maxSalary: Number,
+    cost: Number,
     vacancyField: String,
     vacancyName: String,
     companyId: String,

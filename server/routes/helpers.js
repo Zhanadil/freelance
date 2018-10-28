@@ -22,12 +22,10 @@ const resetPasswordSchema = joi.object().keys({
 const newVacancySchema = joi.object().keys({
     description: joi.string(),
     demands: joi.array().items(joi.string()),
-    type: joi.array().items(joi.string()),
-    minSalary: joi.number(),
-    maxSalary: joi.number(),
+    cost: joi.number(),
     vacancyField: joi.string().required(),
     vacancyName: joi.string().required(),
-    deadline: joi.string(),
+    deadline: joi.string().required(),
 });
 const studentVacancyApplySchema = joi.object().keys({
     vacancyId: joi.string().required(),
