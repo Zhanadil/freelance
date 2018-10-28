@@ -4,7 +4,7 @@ const to = require('await-to-js').default;
 
 const Company = require('@models/company');
 const Student = require('@models/student');
-const { Vacancy, Application } = require('@models/vacancy');
+const { OngoingTask, Vacancy, Application } = require('@models/vacancy');
 const { JWT_SECRET } = require('@configuration');
 
 statusId = (requester, status, sender) => {
@@ -13,9 +13,6 @@ statusId = (requester, status, sender) => {
     }
     if (status === "pending" && sender === requester) {
         return 2;
-    }
-    if (status === "accepted") {
-        return 3;
     }
     if (status === "rejected") {
         return 4;
@@ -55,6 +52,7 @@ module.exports = {
     //      type: [String]       // Тип работы(Полная ставка, стажировка)
     //      minSalary: Int       // Мин зарплата
     //      maxSalary: Int       // Макс зп
+    //      deadline: Date       // Дедлайн задачи
     // }
     newVacancy: async (req, res, next) => {
         var details = {};
@@ -66,24 +64,27 @@ module.exports = {
         details.type = req.body.type;
         details.minSalary = req.body.minSalary;
         details.maxSalary = req.body.maxSalary;
+        details.deadline = new Date(req.body.deadline);
 
         // Find Company which creates the vacancy.
-        const company = await Company.findById(details.companyId, (err) => {
-            if (err) {
-                return res.status(500).json({error: "db error"});
-            }
-        });
+        const company = req.account;
 
         details.companyName = company.name;
 
         // Create new vacancy.
-        const vacancy = await new Vacancy(details);
-        await vacancy.save();
+        new Vacancy(details).save((err, vacancy) => {
+            if (err) {
+                return res.status(500).send(err.message);
+            }
 
-        // Add vacancy to company's vacancy list.
-        company.vacancies.push(vacancy._id);
-        await company.save()
-        return res.status(200).json({status: "ok"});
+            // Add vacancy to company's vacancy list.
+            company.vacancies.push(vacancy._id);
+
+            vacancy.save();
+            company.save();
+
+            return res.status(200).json({status: "ok"});
+        });
     },
 
     // Удалить вакансию по айди
@@ -192,6 +193,7 @@ module.exports = {
     // req.body: {
     //      vacancyId: String,
     //      coverLetter: String,
+    //      newCost: Number,
     // }
     studentApplication: async (req, res, next) => {
         // Айди компании которая создала вакансию, нужно для создания заявки
@@ -212,6 +214,11 @@ module.exports = {
         var coverLetter = null;
         if (req.body.coverLetter) {
             coverLetter = req.body.coverLetter;
+        }
+
+        var newCost = null;
+        if (req.body.newCost) {
+            newCost = req.body.newCost;
         }
 
         // Проверяем айди студента
@@ -252,6 +259,7 @@ module.exports = {
             application.status = 'pending';
             application.sender = 'student';
             application.coverLetter = coverLetter;
+            application.newCost = newCost;
             application.studentDiscarded = false;
             application.companyDiscarded = false;
 
@@ -268,6 +276,7 @@ module.exports = {
             status: "pending",
             sender: "student",
             coverLetter,
+            newCost,
             studentDiscarded: false,
             companyDiscarded: false,
         });
@@ -278,6 +287,158 @@ module.exports = {
         await student.save();
 
         return res.status(200).json({ status: "ok" });
+    },
+
+    // Компания принимает заявку таланта на задачу
+    // Удаляем все заявки и переносим задачу в базу текущих задач
+    // Меняем стоимость работы на предложенную стоимость работником
+    companyAcceptApplication: async (req, res, next) => {
+        // Находим заявку по айди
+        var [err, application] = await to(
+            Application.findOne({
+                vacancyId: req.body.vacancyId,
+                studentId: req.body.studentId,
+            })
+        );
+        if (err) {
+            return res.status(500).send(err.message);
+        }
+
+        if (!application) {
+            return res.status(400).send('application not found');
+        }
+
+        // Деактивируем заявки, принять их уже нельзя, отказаться можно если
+        // твоя заявка не принята
+        Application.updateMany({
+            vacancyId: req.body.vacancyId,
+            // _id: {
+            //     $ne: application._id
+            // },
+        }, {
+            isActive: false
+        }, (err) => {
+            if (err) {
+                console.log(err.message);
+            }
+            // TODO(zhanadil): нужно правильно обработать ошибку
+            // Проблема в том, что запрос к этому моменту может быть завершен
+        });
+
+        // Находим вакансию по айди
+        var [err, vacancy] = await to(
+            Vacancy.findByIdAndRemove(
+                req.body.vacancyId
+            ).lean()
+        );
+        if (err) {
+            return res.status(500).send(err.message);
+        }
+
+        vacancy.maxSalary = application.newCost || vacancy.maxSalary;
+
+        // Переносим задачу в список текущих
+        var ongoingTask;
+        [err, ongoingTask] = await to(
+            new OngoingTask({
+                ... vacancy,
+                status: 'ongoing',
+                freelancerId: req.body.studentId,
+            }).save()
+        );
+        if (err) {
+            return res.status(500).send(err.message);
+        }
+
+        return res.status(200).send(ongoingTask);
+    },
+
+    // Работник принимает заявку компании на задачу
+    // Удаляем все заявки и переносим задачу в базу текущих задач
+    freelancerAcceptApplication: async (req, res, next) => {
+        // Находим заявку по айди
+        var [err, application] = await to(
+            Application.findOne({
+                vacancyId: req.body.vacancyId,
+                studentId: req.account.id,
+            })
+        );
+        if (err) {
+            return res.status(500).send(err.message);
+        }
+
+        if (!application) {
+            return res.status(400).send('application not found');
+        }
+
+        // Деактивируем заявки, принять их уже нельзя, отказаться можно если
+        // твоя заявка не принята
+        Application.updateMany({
+            vacancyId: req.body.vacancyId,
+            // _id: {
+            //     $ne: application._id
+            // },
+        }, {
+            isActive: false
+        }, (err) => {
+            if (err) {
+                console.log(err.message);
+            }
+            // TODO(zhanadil): нужно правильно обработать ошибку
+            // Проблема в том, что запрос к этому моменту может быть завершен
+        });
+
+        // Находим вакансию по айди
+        var [err, vacancy] = await to(
+            Vacancy.findByIdAndRemove(
+                req.body.vacancyId
+            ).lean()
+        );
+        if (err) {
+            return res.status(500).send(err.message);
+        }
+
+        var ongoingTask;
+        [err, ongoingTask] = await to(
+            new OngoingTask({
+                ... vacancy,
+                status: 'ongoing',
+                freelancerId: req.account.id,
+            }).save()
+        );
+        if (err) {
+            return res.status(500).send(err.message);
+        }
+
+        return res.status(200).send(ongoingTask);
+    },
+
+    companyOngoingTasks: (req, res, next) => {
+        OngoingTask.find({
+            companyId: req.account.id
+        }, (err, tasks) => {
+            if (err) {
+                return res.status(500).send(err.message);
+            }
+
+            return res.status(200).json({
+                tasks
+            });
+        })
+    },
+
+    freelancerOngoingTasks: (req, res, next) => {
+        OngoingTask.find({
+            freelancerId: req.account.id
+        }, (err, tasks) => {
+            if (err) {
+                return res.status(500).send(err.message);
+            }
+
+            return res.status(200).json({
+                tasks
+            });
+        })
     },
 
     // Изменить статус вакансии, requirements для каждого случая брать из statusRequirements.
@@ -440,7 +601,7 @@ module.exports = {
         return res.status(200).json({status: "ok"});
     },
 
-    // Get all applications related to this company, based on status written in request.
+    // Get all vacancies related to this company, based on status written in request.
     getCompanyVacancies: async (req, res, next) => {
         Vacancy.find({"_id": {"$in": req.account.vacancies}}, (err, vacancies) => {
             if (err) {
