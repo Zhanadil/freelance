@@ -1,7 +1,7 @@
 {
-    "DBHost": "mongodb://prodrw:zhan1248168421@localhost:27017/love2work_production?authMechanism=DEFAULT",
-    "LOGS_DIRECTORY": "/srv/love2work/production/logs",
-    "RESOURCES_DIRECTORY": "/srv/love2work/production/resources",
+    "DBHost": "mongodb://production_rw:zhan1248168421@localhost:27017/freelance_production?authMechanism=DEFAULT",
+    "LOGS_DIRECTORY": "/srv/freelance/production/logs",
+    "RESOURCES_DIRECTORY": "/srv/freelance/production/resources",
     "FILE_SERVER_HOST": "localhost",
     "FILE_SERVER_PORT": 4000
 }
