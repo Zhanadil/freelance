@@ -139,6 +139,11 @@ vacancyRouter.post('/discard',
     validateBody(schemas.companyVacancyApplicationSchema),
     VacancyController.companyDiscardApplication);
 
+vacancyRouter.post('/revoke',
+    validateBody(schemas.companyVacancyApplicationSchema),
+    VacancyController.companyRevokeApplication
+);
+
 vacancyRouter.get('/remove/:id', VacancyController.removeVacancy);
 
 vacancyRouter.route('/getApplications')
