@@ -125,7 +125,7 @@ vacancyRouter.post('/apply',
 
 vacancyRouter.post('/cancel',
     validateBody(schemas.companyVacancyApplicationSchema),
-    VacancyController.changeStatus(VacancyController.statusRequirements.companyCancel, "canceled"));
+    VacancyController.companyCancelApplication);
 
 vacancyRouter.post('/accept',
     validateBody(schemas.companyVacancyApplicationSchema),
