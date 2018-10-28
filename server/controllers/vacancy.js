@@ -4,7 +4,7 @@ const to = require('await-to-js').default;
 
 const Company = require('@models/company');
 const Student = require('@models/student');
-const { OngoingTask, Vacancy, Application } = require('@models/vacancy');
+const { OngoingTask, Vacancy, Application, RevokedApplication } = require('@models/vacancy');
 const { JWT_SECRET } = require('@configuration');
 
 statusId = (requester, status, sender) => {
@@ -120,37 +120,44 @@ module.exports = {
     //      studentId: String
     // }
     companyApplication: async (req, res, next) => {
+        var vacancyPromise = Vacancy.findById(req.body.vacancyId).exec();
+        var studentPromise = Student.findById(req.body.studentId).exec();
         // Проверяем айди вакансии на действительность
-        await Vacancy.findById(req.body.vacancyId, (err, vacancy) => {
-            if (err) {
-                return res.status(500).json({error: err.message});
-            }
-            if (!vacancy) {
-                return res.status(400).json({error: "vacancy not found"});
-            }
-            if (vacancy.companyId !== req.account._id.toString()) {
-                return res.status(403).json({error: "wrong vacancyId"});
-            }
-        });
+        var [err, vacancy] = await to(
+            vacancyPromise
+        );
+        if (err) {
+            return res.status(500).json({error: err.message});
+        }
+        if (!vacancy) {
+            return res.status(400).json({error: "vacancy not found"});
+        }
+        if (vacancy.companyId !== req.account._id.toString()) {
+            return res.status(403).json({error: "wrong vacancyId"});
+        }
 
         // Find the student.
-        var student = await Student.findById(req.body.studentId, (err) => {
-            if (err) {
-                return res.status(500).json({error: err.message});
-            }
-        });
+        var student;
+        [err, student] = await to(
+            studentPromise
+        );
+        if (err) {
+            return res.status(500).json({error: err.message});
+        }
         if (!student) {
             return res.status(400).json({error: "student not found"});
         }
 
-        var application = await Application.findOne(
-                {studentId: req.body.studentId, vacancyId: req.body.vacancyId},
-                (err) => {
-                    if (err) {
-                        return res.status(500).json({error: err.message});
-                    }
-                }
-            );
+        var application;
+        [err, application] = await to(
+            Application.findOne({
+                studentId: req.body.studentId,
+                vacancyId: req.body.vacancyId
+            })
+        );
+        if (err) {
+            return res.status(500).json({error: err.message});
+        }
 
         // Если заявка уже существует
         if (application) {
@@ -166,12 +173,20 @@ module.exports = {
             application.studentDiscarded = false;
             application.companyDiscarded = false;
 
-            await application.save();
+            [err, application] = await to(
+                application.save()
+            );
 
-            return res.status(200).json({status: "ok"});
+            return res.status(200).json({
+                application
+            });
         }
 
-        application = await new Application({
+        // Add vacancy to student's vacancy list.
+        student.vacancies.push(req.body.vacancyId);
+        studentPromise = student.save();
+
+        var applicationPromise = (new Application({
             vacancyId: req.body.vacancyId,
             companyId: req.account._id,
             studentId: req.body.studentId,
@@ -179,14 +194,25 @@ module.exports = {
             sender: "company",
             studentDiscarded: false,
             companyDiscarded: false,
+        })).save();
+
+        [err, application] = await to(
+            applicationPromise
+        );
+        if (err) {
+            return res.status(500).send(err.message);
+        }
+
+        [err] = await to(
+            studentPromise
+        );
+        if (err) {
+            return res.status(500).send(err.message);
+        }
+
+        return res.status(200).json({
+            application
         });
-        await application.save();
-
-        // Add vacancy to student's vacancy list.
-        student.vacancies.push(req.body.vacancyId);
-        await student.save();
-
-        return res.status(200).json({status: "ok"});
     },
 
     // Студент отправляет заявку на вакансию
@@ -366,9 +392,13 @@ module.exports = {
         if (err) {
             return res.status(500).send(err.message);
         }
-
         if (!application) {
             return res.status(400).send('application not found');
+        }
+
+        // Принять неактивную заявку нельзя
+        if (!application.isActive) {
+            return res.status(400).send('application inactive, cannot accept');
         }
 
         // Деактивируем заявки, принять их уже нельзя, отказаться можно если
@@ -411,6 +441,129 @@ module.exports = {
         }
 
         return res.status(200).send(ongoingTask);
+    },
+
+    // Отменить заявку можно всем кроме работника который решает задачу
+    freelancerCancelApplication: async (req, res, next) => {
+        const vacancyId = req.body.vacancyId;
+        const vacancyPromise = OngoingTask.findById(vacancyId);
+        // Находим заявку
+        var [err, application] = await to(
+            Application.findOne({
+                vacancyId,
+                studentId: req.account.id,
+            })
+        );
+        if (err) {
+            return res.status(500).send(err.message);
+        }
+        if (!application) {
+            return res.status(400).send('application not found');
+        }
+
+        // Находим задачу в списке текущих
+        var ongoingTask;
+        [err, ongoingTask] = await to(
+            vacancyPromise
+        );
+        if (err) {
+            return res.status(500).send(err.message);
+        }
+        // Если задача нашлась в списке текущих и айди работника над задачей
+        // совпадает с айди делающего запрос, то значит он работает над ней.
+        // И, отменить заявку он уже не может.
+        if (ongoingTask && ongoingTask.freelancerId === req.account._id.toString()) {
+            return res.status(400).send('freelancer working on the task cannot cancel it');
+        }
+
+        if (application.sender === 'student') {
+            application.status = 'canceled';
+            [err] = await to(
+                application.save()
+            );
+            if (err) {
+                return res.status(500).send(err.message);
+            }
+
+            return res.status(200).json({
+                application
+            });
+        }
+
+        return res.status(400).send('student cannot cancel company\'s request');
+    },
+
+    // Удаляет принятую заявку, реактивирует все остальные и переносит задачу
+    // из текущих
+    // req.body: {
+    //     vacancyId: String,
+    //     studentId: String
+    // }
+    companyRevokeApplication: async (req, res, next) => {
+        const { vacancyId, studentId } = req.body;
+        var taskPromise = OngoingTask.findByIdAndRemove(vacancyId).lean().exec();
+        var applicationPromise = Application.findOneAndRemove({
+            vacancyId,
+            studentId,
+        }).lean().exec();
+
+        // Реактивируем все заявки кроме отмененной
+        Application.updateMany({
+            vacancyId,
+            studentId: {
+                $ne: studentId,
+            },
+        }, {
+            isActive: true
+        }, (err) => {
+            if (err) {
+                console.log(err);
+            }
+        });
+
+        var [err, task] = await to(
+            taskPromise
+        );
+        if (err) {
+            return res.status(500).send(err.message);
+        }
+        if (!task) {
+            return res.status(400).send('task not found');
+        }
+        task.status = undefined;
+        task.freelancerId = undefined;
+
+        [err, task] = await to(
+            new Vacancy({
+                ...task
+            }).save()
+        );
+        if (err) {
+            return res.status(500).send(err.message);
+        }
+
+        var currentApplication;
+        [err, currentApplication] = await to(
+            applicationPromise
+        );
+        if (err) {
+            return res.status(500).send(err.message);
+        }
+        if (!currentApplication) {
+            return res.status(400).send('application not found');
+        }
+
+        new RevokedApplication({
+            ...currentApplication
+        }).save((err) => {
+            if (err) {
+                console.log(err);
+            }
+        });
+
+        return res.status(200).json({
+            task
+        });
     },
 
     companyOngoingTasks: (req, res, next) => {

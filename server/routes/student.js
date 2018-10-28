@@ -120,7 +120,7 @@ vacancyRouter.post('/apply',
 
 vacancyRouter.post('/cancel',
     validateBody(schemas.studentVacancyApplicationSchema),
-    VacancyController.changeStatus(VacancyController.statusRequirements.studentCancel, "canceled"));
+    VacancyController.freelancerCancelApplication);
 
 vacancyRouter.post('/accept',
     validateBody(schemas.studentVacancyApplicationSchema),

@@ -54,11 +54,13 @@ ongoingTaskSchema.add({
 });
 
 const application = mongoose.model('application', applicationSchema);
+const revokedApplication = mongoose.model('revokedApplication', applicationSchema);
 const task = mongoose.model('task', taskSchema);
 const ongoingtask = mongoose.model('ongoingtask', ongoingTaskSchema);
 
 module.exports = {
     Application: application,
+    RevokedApplication: revokedApplication,
     Vacancy: task,
     OngoingTask: ongoingtask,
 };
