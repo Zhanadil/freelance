@@ -26,14 +26,8 @@ filterOut = filter => {
         return {};
     }
     var result = {};
-    if (filter.minSalary !== undefined) {
-        result.maxSalary = {'$gte': filter.minSalary};
-    }
-    if (filter.maxSalary !== undefined) {
-        result.minSalary = {'$lte': filter.maxSalary};
-    }
-    if (filter.type !== undefined) {
-        result.type = {'$in': filter.type};
+    if (filter.cost !== undefined) {
+        result.cost = {'$lte': filter.cost};
     }
     if (filter.vacancyField !== undefined) {
         result.vacancyField = filter.vacancyField;
@@ -49,22 +43,13 @@ module.exports = {
     //      vacancyName: String  // Название профессии(Джуниор Программист, Повар)
     //      description: String  // Описание
     //      demands: [String]    // Требования
-    //      type: [String]       // Тип работы(Полная ставка, стажировка)
-    //      minSalary: Int       // Мин зарплата
-    //      maxSalary: Int       // Макс зп
-    //      deadline: Date       // Дедлайн задачи
+    //      cost: Number         // Макс зп
+    //      deadline: String     // Дедлайн задачи
     // }
     newVacancy: async (req, res, next) => {
-        var details = {};
+        var details = req.body;
         details.companyId = req.account.id;
-        details.vacancyField = req.body.vacancyField;
-        details.vacancyName = req.body.vacancyName;
-        details.description = req.body.description;
-        details.demands = req.body.demands;
-        details.type = req.body.type;
-        details.minSalary = req.body.minSalary;
-        details.maxSalary = req.body.maxSalary;
-        details.deadline = new Date(req.body.deadline);
+        details.deadline = new Date(details.deadline);
 
         // Find Company which creates the vacancy.
         const company = req.account;
@@ -80,10 +65,11 @@ module.exports = {
             // Add vacancy to company's vacancy list.
             company.vacancies.push(vacancy._id);
 
-            vacancy.save();
             company.save();
 
-            return res.status(200).json({status: "ok"});
+            return res.status(200).json({
+                vacancy
+            });
         });
     },
 
@@ -365,7 +351,7 @@ module.exports = {
             return res.status(500).send(err.message);
         }
 
-        vacancy.maxSalary = application.newCost || vacancy.maxSalary;
+        vacancy.cost = application.newCost || vacancy.cost;
 
         // Переносим задачу в список текущих
         var ongoingTask;
@@ -908,9 +894,9 @@ module.exports = {
 
     // Возвращает ВСЕ вакансии и если студент участвовал в них, то вместе со статусом.
     // При этом заранее пагинирует, например: вторая страница 10 запросов
-    // Запрос содержит фильтры по мин зп(minSalary), макс зп(maxSalary),
+    // Запрос содержит фильтры по cost,
     // область работы(vacancyField), и др.
-    // Например: request.filter = {minSalary: 100000, type: ["full-time"]}
+    // Например: request.filter = {cost: 100000}
     // Также содержит параметры которые нужно вернуть
     // К примеру:
     // request.requirements = {vacancyName: 1, companyId: 1}
