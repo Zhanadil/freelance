@@ -193,7 +193,7 @@ module.exports = {
     // req.body: {
     //      vacancyId: String,
     //      coverLetter: String,
-    //      newBounty: Number,
+    //      newCost: Number,
     // }
     studentApplication: async (req, res, next) => {
         // Айди компании которая создала вакансию, нужно для создания заявки
@@ -216,9 +216,9 @@ module.exports = {
             coverLetter = req.body.coverLetter;
         }
 
-        var newBounty = null;
+        var newCost = null;
         if (req.body.newBounty) {
-            newBounty = req.body.newBounty;
+            newCost = req.body.newCost;
         }
 
         // Проверяем айди студента
@@ -259,7 +259,7 @@ module.exports = {
             application.status = 'pending';
             application.sender = 'student';
             application.coverLetter = coverLetter;
-            application.newBounty = newBounty;
+            application.newCost = newCost;
             application.studentDiscarded = false;
             application.companyDiscarded = false;
 
