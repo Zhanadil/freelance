@@ -124,7 +124,7 @@ vacancyRouter.post('/cancel',
 
 vacancyRouter.post('/accept',
     validateBody(schemas.studentVacancyApplicationSchema),
-    VacancyController.changeStatus(VacancyController.statusRequirements.studentAccept, "accepted"));
+    VacancyController.freelancerAcceptApplication);
 
 vacancyRouter.post('/reject',
     validateBody(schemas.studentVacancyApplicationSchema),
@@ -145,6 +145,8 @@ vacancyRouter.route('/getApplications')
 vacancyRouter.post('/:id',
     validateBody(schemas.getVacancyById),
     VacancyController.getVacancyByIdAsStudent);
+
+vacancyRouter.get('/ongoing', VacancyController.freelancerOngoingTasks);
 
 router.use('/vacancy', vacancyRouter);
 

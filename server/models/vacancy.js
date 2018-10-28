@@ -9,7 +9,14 @@ const applicationSchema = mongoose.Schema({
     studentId: String,
     status: {
         type: String,
-        enum: ['pending', 'canceled', 'accepted', 'rejected'],
+        enum: ['pending', 'canceled', 'rejected'],
+    },
+    // Заявка неактивна в случае принятия другой заявки на данную задачу
+    // Принимать ее в таком случае нельзя
+    // Она может обратно стать активной если прошлую заявку отменят
+    isActive: {
+        type: Boolean,
+        default: true,
     },
     // С чьей стороны отправлена заявка
     sender: {
@@ -17,6 +24,7 @@ const applicationSchema = mongoose.Schema({
         enum: ['student', 'company'],
     },
     coverLetter: String,
+    newBounty: Number,
     studentDiscarded: Boolean,
     companyDiscarded: Boolean,
 });
@@ -24,22 +32,33 @@ const applicationSchema = mongoose.Schema({
 // Vacancy DB
 // Contains vacancy information including vacancy name, description, salaries,
 // company id, all students who applied, all students who were called by the company.
-const vacancySchema = mongoose.Schema({
+const taskSchema = mongoose.Schema({
     description: String,
     demands: [String],
     type: [String],
-    minSalary: Number,
     maxSalary: Number,
     vacancyField: String,
     vacancyName: String,
     companyId: String,
     companyName: String,
+    deadline: Date,
+});
+
+const ongoingTaskSchema = taskSchema.clone();
+ongoingTaskSchema.add({
+    status: {
+        type: String,
+        enum: ['ongoing', 'completed'],
+    },
+    freelancerId: String,
 });
 
 const application = mongoose.model('application', applicationSchema);
-const vacancy = mongoose.model('vacancy', vacancySchema);
+const task = mongoose.model('task', taskSchema);
+const ongoingtask = mongoose.model('ongoingtask', ongoingTaskSchema);
 
 module.exports = {
     Application: application,
-    Vacancy: vacancy,
+    Vacancy: task,
+    OngoingTask: ongoingtask,
 };

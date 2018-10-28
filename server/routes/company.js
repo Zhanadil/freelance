@@ -129,7 +129,7 @@ vacancyRouter.post('/cancel',
 
 vacancyRouter.post('/accept',
     validateBody(schemas.companyVacancyApplicationSchema),
-    VacancyController.changeStatus(VacancyController.statusRequirements.companyAccept, "accepted"));
+    VacancyController.companyAcceptApplication);
 
 vacancyRouter.post('/reject',
     validateBody(schemas.companyVacancyApplicationSchema),
@@ -144,6 +144,8 @@ vacancyRouter.get('/remove/:id', VacancyController.removeVacancy);
 vacancyRouter.route('/getApplications')
     .get(VacancyController.getCompanyApplications)
     .post(VacancyController.getCompanyApplications);
+
+vacancyRouter.get('/ongoing', VacancyController.companyOngoingTasks);
 
 router.use('/vacancy', vacancyRouter);
 
