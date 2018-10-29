@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const Company = require('@models/company');
+const { Company } = require('@models/company');
 const Student = require('@models/student');
 const Questionnaire = require('@models/questionnaire');
 const helpers = require('@controllers/helpers');

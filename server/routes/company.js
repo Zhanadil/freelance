@@ -166,17 +166,20 @@ router.use('/chat', chatRouter);
 
 // ******************************** Employee **********************************
 
-employeeRouter.put('/',
-    passport.authenticate('jwt-company', { session: false }),
-    EmployeeController.newEmployee
-);
-
 employeeRouter.get('/verify/:code', EmployeeController.newEmployeeCodeConfirmation);
 
 employeeRouter.post('/signup',
     validateBody(schemas.employeeSignupSchema),
     EmployeeController.newEmployeeSignUp
 );
+
+employeeRouter.use(passport.authenticate('jwt-company', { session: false }));
+
+employeeRouter.put('/', EmployeeController.newEmployee);
+
+employeeRouter.put('/resend', EmployeeController.resendEmployeeVerification);
+
+employeeRouter.get('/all', EmployeeController.allEmployees);
 
 router.use('/employee', employeeRouter);
 

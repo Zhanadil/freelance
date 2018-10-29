@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 const JWT = require('jsonwebtoken');
 const { JWT_SECRET } = require('@configuration');
 const Student = require('@models/student');
-const Company = require('@models/company');
+const { Company } = require('@models/company');
 const Questionnaire = require('@models/questionnaire');
 
 const signToken = async (user) => {

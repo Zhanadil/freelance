@@ -1,7 +1,7 @@
 const to = require('await-to-js').default;
 const nanoid = require('nanoid');
 
-const Company = require('@models/company');
+const { Company } = require('@models/company');
 const Student = require('@models/student');
 const mailer = require('@controllers/mailer');
 const { hashPassword, signToken, signIn } = require('@controllers/helpers');
