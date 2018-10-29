@@ -79,6 +79,7 @@ const findConversation = async (conversationId, userType, userId, receiverId) =>
                 company: {
                     id: companyId,
                     isMain: company.isMain,
+                    name: company.name,
                     firstName: company.employeeInfo.firstName,
                     lastName: company.employeeInfo.lastName,
                     position: company.employeeInfo.position,
