@@ -138,7 +138,7 @@ module.exports = {
                 File.find({
                     'ownerType': userType,
                     'ownerId': req.user.id,
-                    'fileInfo.fileType': 'document',
+                    'fileInfo.type': 'document',
                 })
             );
             if (err) {
