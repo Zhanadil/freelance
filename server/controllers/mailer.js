@@ -107,7 +107,7 @@ module.exports = {
             from: senderEmail,
             to: company.credentials.email,
             subject: 'Приглашение на регистрацию',
-            text: `Доброго времени суток!\nНа вашу почту было выслано приглашение на регистрацию как сотрудник компании "${company.name}".\nЧтобы подтвердить свой почтовый адрес пройдите по ссылке love2work.kz:3000/company/employee/verify/${company.credentials.confirmationToken}`
+            text: `Доброго времени суток!\nНа вашу почту было выслано приглашение на регистрацию как сотрудник компании "${company.name}".\nЧтобы подтвердить свой почтовый адрес пройдите по ссылке:\nlove2work.kz:3000/company/employee/verify/${company.credentials.confirmationToken}`
         };
 
         transporter.sendMail(mailOptions, function(error, info){

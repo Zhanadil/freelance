@@ -3,7 +3,7 @@ const config = require('config');
 const formdata = require('form-data');
 const to = require('await-to-js').default;
 
-const Company = require('@models/company');
+const { Company } = require('@models/company');
 const Student = require('@models/student');
 const File = require('@models/file');
 

@@ -1,6 +1,6 @@
 const to = require('await-to-js').default;
 
-const Company = require('@models/company');
+const { Company } = require('@models/company');
 const Student = require('@models/student');
 const { Vacancy } = require('@models/vacancy');
 const Questionnaire = require('@models/questionnaire');

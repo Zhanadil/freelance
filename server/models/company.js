@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const to = require('await-to-js').default;
 
 const credentialsSchema = require('@models/credentials_schema').credentialsSchema;
 
@@ -23,6 +24,26 @@ const companySchema = mongoose.Schema({
     vacancies: [String],
 });
 
-const company = mongoose.model('company', companySchema);
+const Company = mongoose.model('company', companySchema);
 
-module.exports = company;
+// ******************************** UTIL **********************************
+
+const allEmployees = async (companyId) => {
+    const [err, companies] = await to(
+        Company.find({
+            'employeeInfo.parentId': companyId
+        })
+    );
+    if (err) {
+        throw err;
+    }
+
+    return companies;
+}
+
+module.exports = {
+    Company,
+    CompanyUtil: {
+        allEmployees
+    }
+};

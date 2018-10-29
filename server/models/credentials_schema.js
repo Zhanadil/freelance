@@ -25,6 +25,10 @@ const credentialsSchema = mongoose.Schema({
 });
 
 credentialsSchema.methods.isValidPassword = async function(newPassword) {
+    if (!this.password) {
+        return false;
+    }
+
     try {
         return await bcrypt.compare(newPassword, this.password);
     } catch(error) {

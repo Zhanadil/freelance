@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const to = require('await-to-js').default;
 
 const Student = require('@models/student');
-const Company = require('@models/company');
+const { Company } = require('@models/company');
 const { Conversation, Message } = require('@models/chat');
 
 const helpers = require('@socket-controllers/helpers');

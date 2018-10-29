@@ -5,7 +5,7 @@ const to = require('await-to-js').default;
 const { JWT_SECRET } = require('@configuration');
 
 const Student = require('@models/student');
-const Company = require('@models/company');
+const { Company } = require('@models/company');
 
 const ChatController = require('@socket-controllers/chat');
 

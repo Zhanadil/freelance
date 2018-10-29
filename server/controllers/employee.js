@@ -2,7 +2,7 @@ const nanoid = require('nanoid');
 const to = require('await-to-js').default;
 const { hashPassword, signIn, signToken } = require('@controllers/helpers');
 
-const Company = require('@models/company');
+const { Company, CompanyUtil } = require('@models/company');
 
 const mailer = require('@controllers/mailer');
 
@@ -64,6 +64,48 @@ module.exports = {
         return res.status(200).send('link sent');
     },
 
+    resendEmployeeVerification: async (req, res, next) => {
+        if (!req.user.isMain) {
+            return res.status(400).send('only main account can signup employees');
+        }
+
+        const { email } = req.body;
+
+        // Находим сотрудника компании для высылания почты
+        var [err, company] = await to(
+            Company.findOne({
+                // В отличии от обычной регистрации, не проверяем на схожесть в
+                // названиях компаний, так как название компании сотрудника и
+                // главного аккаунта будет совпадать
+                'credentials.email': email
+            })
+        );
+        if (err) {
+            return res.status(500).send(err.message);
+        }
+        if (!company) {
+            return res.status(400).send("Account not found");
+        }
+
+        // Создаем токен для подтверждения, он будет выслан по почте
+        var confirmationToken = await nanoid();
+
+        company.credentials.confirmationToken = confirmationToken;
+
+        // Сохраняем аккаунт и отправляем почту
+        [err] = await to(
+            company.save()
+        );
+        if (err) {
+            return res.status(500).send(err.message);
+        }
+
+        mailer.sendEmployeeInvitation(company);
+
+        // Возвращаем токен для доступа к сайту
+        return res.status(200).send('link sent');
+    },
+
     newEmployeeCodeConfirmation: async (req, res, next) => {
         var [err, company] = await to(
             Company.findOne({
@@ -107,5 +149,19 @@ module.exports = {
         }
 
         return res.status(200).json(await signIn(company));
+    },
+
+    allEmployees: async (req, res, next) => {
+        if (!req.user.isMain) {
+            return res.status(400).send('account is not main');
+        }
+
+        var employees;
+        try {
+            employees = await CompanyUtil.allEmployees(req.user.id)
+        } catch(err) {
+            return res.status(500).send(err.message);
+        }
+        return res.status(200).send(employees);
     }
 };
