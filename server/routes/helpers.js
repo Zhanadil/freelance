@@ -20,7 +20,7 @@ const resetPasswordSchema = joi.object().keys({
     password: joi.string().required(),
 });
 const newVacancySchema = joi.object().keys({
-    description: joi.string(),
+    description: joi.string().allow(""),
     demands: joi.array().items(joi.string()),
     cost: joi.number(),
     vacancyField: joi.string().required(),
@@ -29,7 +29,7 @@ const newVacancySchema = joi.object().keys({
 });
 const studentVacancyApplySchema = joi.object().keys({
     vacancyId: joi.string().required(),
-    coverLetter: joi.string(),
+    coverLetter: joi.string().allow(""),
     newCost: joi.number(),
 });
 const studentVacancyApplicationSchema = joi.object().keys({
@@ -37,10 +37,6 @@ const studentVacancyApplicationSchema = joi.object().keys({
 });
 const companyVacancyApplicationSchema = studentVacancyApplicationSchema.keys({
     studentId: joi.string().required()
-});
-const getVacancySchema = joi.object().keys({
-    incoming: joi.string(),
-    outgoing: joi.string()
 });
 const studentAnswerSchema = joi.object().keys({
     answers: joi.array().items(joi.string()),
@@ -143,7 +139,6 @@ module.exports = {
         studentVacancyApplySchema,
         studentVacancyApplicationSchema,
         companyVacancyApplicationSchema,
-        getVacancySchema,
         studentAnswerSchema,
         getVacancyById,
         getAllVacancies,
