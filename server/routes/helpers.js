@@ -104,6 +104,14 @@ const updateQuestionSetSchema = joi.object().keys({
     ),
 });
 
+const employeeSignupSchema = joi.object().keys({
+    code: joi.string().required(),
+    firstName: joi.string().required(),
+    lastName: joi.string().required(),
+    position: joi.string().required(),
+    password: joi.string().required(),
+});
+
 module.exports = {
     // Helper that checks that request body corresponds to a schema
     validateBody: (schema) => {
@@ -145,5 +153,6 @@ module.exports = {
         createQuestionSetSchema,
         deleteQuestionSetSchema,
         updateQuestionSetSchema,
+        employeeSignupSchema,
     },
 };

@@ -2,16 +2,21 @@ const mongoose = require('mongoose');
 
 const credentialsSchema = require('@models/credentials_schema').credentialsSchema;
 
-// Companies DB
-// Company can log in via email, google or [facebook(currently not working)].
-// TODO(zhanadil): Add FB registration
-// All the information including phone number, photo and user description
-// are stored there.
+// База данных компаний, хранит всю базовую информацию о компании.
+// Аккаунты сотрудников также значатся как компания, только будет указан
+// айди главного аккаунта.
 const companySchema = mongoose.Schema({
     credentials: credentialsSchema,
-    name: {
-        type: String,
-        unique: true
+    name: String,
+    isMain: {
+        type: Boolean,
+        default: true,
+    },
+    employeeInfo: {
+        parentId: String,
+        firstName: String,
+        lastName: String,
+        position: String,
     },
     phone: String,
     description: String,

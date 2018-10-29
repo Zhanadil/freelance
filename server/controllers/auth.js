@@ -4,37 +4,34 @@ const nanoid = require('nanoid');
 const Company = require('@models/company');
 const Student = require('@models/student');
 const mailer = require('@controllers/mailer');
-const { hashPassword, signToken } = require('@controllers/helpers');
-
-const signIn = async (user) => {
-    var token = await signToken(user);
-    var ret = {
-        token,
-        confirmed: user.credentials.confirmed,
-    };
-    if ((user instanceof Student) && (user.userType === 'admin')) {
-        ret.userType = 'admin';
-    }
-
-    return ret;
-}
+const { hashPassword, signToken, signIn } = require('@controllers/helpers');
 
 // Company authorization methods controller
 module.exports = {
     // Регистрация: требуются почта, пароль и название компании
     companySignUp: async (req, res, next) => {
-        const { name, email, password } = req.value.body;
+        const { name, email, password } = req.body;
 
         // Проверяем, что почта не используется
         var err, foundCompany;
         [err, foundCompany] = await to(
-            Company.findOne({ 'credentials.email': email })
+            Company.findOne({
+                $or: [
+                    { 'credentials.email': email },
+                    { 'name': name }
+                ]
+            })
         );
         if (err) {
             return res.status(500).json({error: err.message});
         }
         if (foundCompany) {
-            return res.status(403).json({ error: "Email is already in use" });
+            if (foundCompany.credentials.email === email) {
+                return res.status(403).json({ error: "Email is already in use" });
+            }
+            if (foundCompany.name === name) {
+                return res.status(403).json({ error: "Company name is already in use" });
+            }
         }
 
         // Создаем токен для подтверждения, он будет выслан по почте
@@ -46,12 +43,12 @@ module.exports = {
         const newCompany = new Company({
             credentials: {
                 method: 'local',
-                email: email,
+                email,
                 password: hashedPassword,
                 confirmed: false,
-                confirmationToken: confirmationToken,
+                confirmationToken,
             },
-            name: name,
+            name,
         });
 
         // Сохраняем аккаунт и отправляем почту
@@ -156,7 +153,7 @@ module.exports = {
         }
 
         if (!company.credentials.forgotPasswordExpirationDate ||
-                new Date() > company.forgotPasswordExpirationDate) {
+                new Date() > company.credentials.forgotPasswordExpirationDate) {
             company.credentials.forgotPasswordUrl = null;
             company.credentials.forgotPasswordExpirationDate = null;
             await company.save();
@@ -206,15 +203,10 @@ module.exports = {
         return res.status(200).json(await signIn(company));
     },
 
-    // Sign up a user by google account
-    companyGoogleOAuth: async (req, res, next) => {
-        res.status(200).json(await signIn(req.account));
-    },
-
     // Регистрация студента по почте и паролю
     studentSignUp: async (req, res, next) => {
         var err, foundStudent;
-        const { email, password } = req.value.body;
+        const { email, password } = req.body;
 
         // Если почта уже используется, то вернуть ошибку
         [err, foundStudent] = await to(
@@ -342,7 +334,7 @@ module.exports = {
         }
 
         if (!student.credentials.forgotPasswordExpirationDate ||
-                new Date() > student.forgotPasswordExpirationDate) {
+                new Date() > student.credentials.forgotPasswordExpirationDate) {
             student.credentials.forgotPasswordUrl = null;
             student.credentials.forgotPasswordExpirationDate = null;
             await student.save();
@@ -390,10 +382,5 @@ module.exports = {
         await student.save();
 
         return res.status(200).json(await signIn(student));
-    },
-
-    // Sign up a user by google account
-    studentGoogleOAuth: async (req, res, next) => {
-        return res.status(200).json(await signIn(req.account));
     },
 };
