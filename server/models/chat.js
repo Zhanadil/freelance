@@ -22,8 +22,19 @@ const messageSchema = mongoose.Schema({
 });
 
 const conversationSchema = mongoose.Schema({
-    companyId: String,
-    studentId: String,
+    company: {
+        id: String,
+        name: String,
+        isMain: Boolean,
+        firstName: String,
+        lastName: String,
+        position: String,
+    },
+    student: {
+        id: String,
+        firstName: String,
+        lastName: String,
+    },
     lastMessage: messageSchema,
 });
 
