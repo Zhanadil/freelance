@@ -46,10 +46,6 @@ authRouter.post('/update-password/:url',
     validateBody(schemas.resetPasswordSchema),
     AuthController.studentChangePassword);
 
-authRouter.post('/google',
-    passport.authorize('googleToken-student', {session: false}),
-    AuthController.studentGoogleOAuth);
-
 router.use('/auth', authRouter);
 
 // ********************  All Getters and Setters  *************************

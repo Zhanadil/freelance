@@ -7,6 +7,24 @@ const Student = require('@models/student');
 const Company = require('@models/company');
 const Questionnaire = require('@models/questionnaire');
 
+const signToken = async (user) => {
+    var type = '';
+    if (user instanceof Company) {
+        type = 'company';
+    } else if (user instanceof Student) {
+        type = 'student';
+    }
+    return await JWT.sign({
+        iss: 'john',
+        sub: {
+            id: user.id,
+            type: type,
+        },
+        iat: Date.now(),
+        exp: new Date().setDate(new Date().getDate() + 1)
+    }, JWT_SECRET);
+};
+
 // Registers JsonWebToken for a user
 module.exports = {
     hashPassword: async (password) => {
@@ -14,22 +32,19 @@ module.exports = {
         return await bcrypt.hash(password, salt);
     },
 
-    signToken: async (user) => {
-        var type = '';
-        if (user instanceof Company) {
-            type = 'company';
-        } else if (user instanceof Student) {
-            type = 'student';
+    signToken,
+
+    signIn: async (user) => {
+        var token = await signToken(user);
+        var ret = {
+            token,
+            confirmed: user.credentials.confirmed,
+        };
+        if ((user instanceof Student) && (user.userType === 'admin')) {
+            ret.userType = 'admin';
         }
-        return await JWT.sign({
-            iss: 'john',
-            sub: {
-                id: user.id,
-                type: type,
-            },
-            iat: Date.now(),
-            exp: new Date().setDate(new Date().getDate() + 1)
-        }, JWT_SECRET);
+
+        return ret;
     },
 
     questionSetsInfo: async (studentId) => {

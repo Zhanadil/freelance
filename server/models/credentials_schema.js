@@ -20,7 +20,6 @@ const credentialsSchema = mongoose.Schema({
         type: String,
         select: false,
     },
-    googleId: String,
     forgotPasswordUrl: String,
     forgotPasswordExpirationDate: Date,
 });

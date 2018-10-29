@@ -1,5 +1,5 @@
 {
-    "DBHost": "mongodb://localhost:27017/love2work_dev",
+    "DBHost": "mongodb://localhost:27017/freelance_dev",
     "LOGS_DIRECTORY": "/srv/freelance/dev/logs",
     "RESOURCES_DIRECTORY": "/srv/freelance/dev/resources",
     "FILE_SERVER_HOST": "localhost",

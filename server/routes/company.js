@@ -7,6 +7,7 @@ const authRouter = express.Router();
 const privateRouter = express.Router();
 const vacancyRouter = express.Router();
 const chatRouter = express.Router();
+const employeeRouter = express.Router();
 
 const passport = require('passport');
 const passportConfig = require('@root/passport');
@@ -17,6 +18,7 @@ const ProfileController = require('@controllers/profile');
 const VacancyController = require('@controllers/vacancy');
 const ChatController = require('@controllers/chat');
 const StorageController = require('@controllers/storage');
+const EmployeeController = require('@controllers/employee');
 
 // **************  All company authorization related requests ****************
 
@@ -45,10 +47,6 @@ authRouter.get('/confirm-forgot-password/:url',
 authRouter.post('/update-password/:url',
     validateBody(schemas.resetPasswordSchema),
     AuthController.companyChangePassword);
-
-authRouter.post('/google',
-    passport.authorize('googleToken-company', {session: false}),
-    AuthController.companyGoogleOAuth);
 
 router.use('/auth', authRouter);
 
@@ -165,5 +163,21 @@ chatRouter.get('/:conversationId/:cursor/:limit', ChatController.companyGetChat)
 chatRouter.get('/conversations', ChatController.companyConversations);
 
 router.use('/chat', chatRouter);
+
+// ******************************** Employee **********************************
+
+employeeRouter.put('/',
+    passport.authenticate('jwt-company', { session: false }),
+    EmployeeController.newEmployee
+);
+
+employeeRouter.get('/verify/:code', EmployeeController.newEmployeeCodeConfirmation);
+
+employeeRouter.post('/signup',
+    validateBody(schemas.employeeSignupSchema),
+    EmployeeController.newEmployeeSignUp
+);
+
+router.use('/employee', employeeRouter);
 
 module.exports = router;
