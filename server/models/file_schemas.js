@@ -3,12 +3,13 @@ const mongoose = require('mongoose');
 const fileInfoSchema = mongoose.Schema({
     link: String,
     thumbnail_link: String,
-    fileName: String,
+    name: String,
     mimeType: String,
-    fileType: {
+    type: {
         type: String,
         enum: ['avatar', 'chat', 'document'],
     },
+    size: Number,
     conversationId: String,
 });
 

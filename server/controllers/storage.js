@@ -116,9 +116,10 @@ module.exports = {
                         ownerId: req.user.id,
                         fileInfo: {
                             link: response.message.link,
-                            fileName: response.message.fileName,
+                            name: file.name,
+                            size: file.data.length,
                             mimeType: response.message.mimeType,
-                            fileType: 'document',
+                            type: 'document',
                         }
                     }).save()
                 );
