@@ -120,7 +120,7 @@ module.exports = {
         if (vacancy.companyId !== req.account._id.toString()) {
             return res.status(403).json({error: "wrong vacancyId"});
         }
-        if (vacancy.status !== 'pending') {
+        if (vacancy.state !== 'pending') {
             return res.status(400).send('application stage is closed');
         }
 
@@ -275,7 +275,7 @@ module.exports = {
         if (!vacancy) {
             return res.status(400).json({error: "vacancy not found"});
         }
-        if (vacancy.status !== 'pending') {
+        if (vacancy.state !== 'pending') {
             return res.status(400).send('application stage is closed');
         }
         var companyId = vacancy.companyId;
