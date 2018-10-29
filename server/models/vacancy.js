@@ -42,7 +42,7 @@ const taskSchema = mongoose.Schema({
     companyId: String,
     companyName: String,
     deadline: Date,
-    status: {
+    state: {
         type: String,
         enum: ['pending', 'ongoing', 'completed', 'deleted'],
         default: 'pending',
