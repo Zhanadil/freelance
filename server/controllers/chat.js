@@ -28,7 +28,7 @@ module.exports = {
         }
 
         // Проверяем, что у студента есть доступ
-        if (conversation.studentId !== req.account.id) {
+        if (conversation.student.id !== req.account.id) {
             return res.status(403).json({
                 error: "not authorized for this conversation"
             });
@@ -76,7 +76,7 @@ module.exports = {
         }
 
         // Проверяем, что у студента есть доступ
-        if (conversation.studentId !== req.account.id) {
+        if (conversation.student.id !== req.account.id) {
             return res.status(403).json({
                 error: "not authorized for this conversation"
             });
@@ -106,8 +106,9 @@ module.exports = {
     studentConversations: async (req, res, next) => {
         // Находим все чаты
         var [err, conversations] = await to(
-            Conversation.find({ studentId: req.account.id })
-                .sort({ 'lastMessage.timeSent': -1 })
+            Conversation.find({
+                 'student.id': req.account.id
+             }).sort({ 'lastMessage.timeSent': -1 })
         );
         if (err) {
             return res.status(500).json({
@@ -140,7 +141,7 @@ module.exports = {
         }
 
         // Проверяем, что у студента есть доступ
-        if (conversation.companyId !== req.account.id) {
+        if (conversation.company.id !== req.account.id) {
             return res.status(403).json({
                 error: "not authorized for this conversation"
             });
@@ -188,7 +189,7 @@ module.exports = {
         }
 
         // Проверяем, что у студента есть доступ
-        if (conversation.companyId !== req.account.id) {
+        if (conversation.company.id !== req.account.id) {
             return res.status(403).json({
                 error: "not authorized for this conversation"
             });
@@ -218,8 +219,9 @@ module.exports = {
     companyConversations: async (req, res, next) => {
         // Находим все чаты
         var [err, conversations] = await to(
-            Conversation.find({ companyId: req.account.id })
-                .sort({ 'lastMessage.timeSent': -1 })
+            Conversation.find({
+                'company.id': req.account.id
+            }).sort({ 'lastMessage.timeSent': -1 })
         );
         if (err) {
             return res.status(500).json({

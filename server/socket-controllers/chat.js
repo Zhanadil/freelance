@@ -30,7 +30,7 @@ const findConversation = async (conversationId, userType, userId, receiverId) =>
         throw new Error("conversation not found");
     }
 
-    var companyId, studentId;
+    var companyId, studentId, companyName;
     if (userType === 'company') {
         companyId = userId;
         studentId = receiverId;
@@ -42,8 +42,8 @@ const findConversation = async (conversationId, userType, userId, receiverId) =>
     // Находим чат по собеседникам
     [err, conversation] = await to(
         Conversation.findOne({
-            companyId,
-            studentId,
+            'company.id': companyId,
+            'student.id': studentId,
         })
     );
     if (err) {
@@ -52,10 +52,42 @@ const findConversation = async (conversationId, userType, userId, receiverId) =>
 
     // Если не нашли и так, то создаем новый
     if (!conversation) {
+        const companyPromise = Company.findById(companyId).exec();
+        const studentPromise = Student.findById(studentId).exec();
+        var err, company, student;
+        [err, company] = await to(
+            companyPromise
+        );
+        if (err) {
+            throw err;
+        }
+        [err, student] = await to(
+            studentPromise
+        );
+        if (err) {
+            throw err;
+        }
+        if (!company) {
+            throw new Error('company not found');
+        }
+        if (!student) {
+            throw new Error('student not found');
+        }
+
         [err, conversation] = await to(
             new Conversation({
-                companyId,
-                studentId
+                company: {
+                    id: companyId,
+                    isMain: company.isMain,
+                    firstName: company.employeeInfo.firstName,
+                    lastName: company.employeeInfo.lastName,
+                    position: company.employeeInfo.position,
+                },
+                student: {
+                    id: studentId,
+                    firstName: student.firstName,
+                    lastName: student.lastName,
+                },
             }).save()
         );
         if (err) {
