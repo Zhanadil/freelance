@@ -36,29 +36,4 @@ credentialsSchema.methods.isValidPassword = async function(newPassword) {
     }
 }
 
-const temporaryCredentialsSchema = mongoose.Schema({
-    method: {
-        type: String,
-        enum: ['local', 'google'],
-    },
-    email: {
-        type: String,
-        lowercase: true,
-        unique: true,
-    },
-    password: String,
-    googleId: String
-});
-
-temporaryCredentialsSchema.methods.isValidPassword = async function(newPassword) {
-    try {
-        return await bcrypt.compare(newPassword, this.password);
-    } catch(error) {
-        throw new Error(error);
-    }
-}
-
-module.exports = {
-    credentialsSchema,
-    temporaryCredentialsSchema,
-};
+module.exports = credentialsSchema;
