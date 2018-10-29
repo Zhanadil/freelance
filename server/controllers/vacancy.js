@@ -857,7 +857,8 @@ module.exports = {
         Vacancy.find({
             "_id": {
                 "$in": req.account.vacancies
-            }
+            },
+            "state": "pending",
         }, (err, vacancies) => {
             if (err) {
                 return res.status(500).json({error: err.message});
@@ -971,6 +972,8 @@ module.exports = {
         var filters = filterOut(req.body.filter);
         var err, vacancies;
         var applications
+
+        filters.state = 'pending';
 
         // Находим все вакансии в пагинированном виде
         [err, vacancies] = await to(
