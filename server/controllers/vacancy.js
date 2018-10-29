@@ -168,9 +168,7 @@ module.exports = {
                 application.save()
             );
 
-            return res.status(200).json({
-                application
-            });
+            return res.status(200).send(application);
         }
 
         // Add vacancy to student's vacancy list.
@@ -200,9 +198,7 @@ module.exports = {
             return res.status(500).send(err.message);
         }
 
-        return res.status(200).json({
-            application
-        });
+        return res.status(200).send(application);
     },
 /*
     completeTask: async (req, res, next) => {
@@ -322,6 +318,8 @@ module.exports = {
             // Отправить заявку повторно можно только если статус
             // заявки 'canceled' или 'rejected'
             if (application.status !== 'canceled' && application.status !== 'rejected') {
+                console.log(application);
+                console.log(application.status);
                 return res.status(409).json({
                     error: `student can't apply, current status is: ${application.status}`
                 });
@@ -338,7 +336,7 @@ module.exports = {
 
             await application.save();
 
-            return res.status(200).json({status: "ok"});
+            return res.status(200).send(application);
         }
 
         // Если заявка не существует, то создаем новую
@@ -358,7 +356,7 @@ module.exports = {
         student.vacancies.push(req.body.vacancyId);
         await student.save();
 
-        return res.status(200).json({ status: "ok" });
+        return res.status(200).send(application);
     },
 
     // Компания принимает заявку таланта на задачу

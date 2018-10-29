@@ -10,6 +10,7 @@ const applicationSchema = mongoose.Schema({
     status: {
         type: String,
         enum: ['pending', 'canceled', 'rejected', 'revoked', 'accepted'],
+        default: 'pending',
     },
     // Заявка неактивна в случае принятия другой заявки на данную задачу
     // Принимать ее в таком случае нельзя
