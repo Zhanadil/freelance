@@ -10,6 +10,12 @@ const cors = require('cors');
 const JWT = require('jsonwebtoken');
 const http = require('http');
 
+const mailer = require('@lib/mailer');
+mailer.init(
+    'znurtoleuov@gmail.com',
+    '3.3&d6Q,oL'
+);
+
 const app = express();
 const server = http.createServer(app);
 require('@root/socket')(server);
