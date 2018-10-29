@@ -411,7 +411,7 @@ module.exports = {
         }
 
         vacancy.cost = application.newCost || vacancy.cost;
-        vacancy.status = 'ongoing';
+        vacancy.state = 'ongoing';
         vacancy.freelancerId = req.body.studentId;
 
         // Переносим задачу в список текущих
@@ -477,7 +477,7 @@ module.exports = {
             return res.status(500).send(err.message);
         }
 
-        vacancy.status = 'ongoing';
+        vacancy.state = 'ongoing';
         vacancy.freelancerId = req.account.id;
 
         [err, vacancy] = await to(
@@ -524,7 +524,7 @@ module.exports = {
         // Если задача нашлась в списке текущих и айди работника над задачей
         // совпадает с работником в заявке, то значит он работает над ней.
         // И отменить заявку он уже не может.
-        if (vacancy.status === 'ongoing' && vacancy.freelancerId === studentId) {
+        if (vacancy.state === 'ongoing' && vacancy.freelancerId === studentId) {
             return res.status(400).send('company cannot cancel ongoing application');
         }
 
@@ -629,7 +629,7 @@ module.exports = {
         if (!task) {
             return res.status(400).send('task not found');
         }
-        task.status = 'pending';
+        task.state = 'pending';
         task.freelancerId = undefined;
 
         [err, task] = await to(
@@ -667,7 +667,7 @@ module.exports = {
     companyOngoingTasks: (req, res, next) => {
         Vacancy.find({
             companyId: req.account.id,
-            status: 'ongoing'
+            state: 'ongoing'
         }, (err, tasks) => {
             if (err) {
                 return res.status(500).send(err.message);
@@ -682,7 +682,7 @@ module.exports = {
     freelancerOngoingTasks: (req, res, next) => {
         Vacancy.find({
             freelancerId: req.account.id,
-            status: 'ongoing'
+            state: 'ongoing'
         }, (err, tasks) => {
             if (err) {
                 return res.status(500).send(err.message);
@@ -876,7 +876,11 @@ module.exports = {
         var students, studentIds = [];
 
         // У нас есть четыре типа фильтров
-        var applicationsFilter = {};
+        var applicationsFilter = {
+            activityState: {
+                $ne: 'deleted'
+            },
+        };
         applicationsFilter.companyId = req.account._id;
         applicationsFilter.companyDiscarded = false;
         // 1: Входящие необработанные заявки
@@ -1077,7 +1081,11 @@ module.exports = {
         var companies, companyIds = [];
 
         // У нас есть четыре типа фильтров
-        var applicationsFilter = {};
+        var applicationsFilter = {
+            activityState: {
+                $ne: 'deleted'
+            },
+        };
         applicationsFilter.studentId = req.account._id;
         applicationsFilter.studentDiscarded = false;
         // 1: Входящие необработанные заявки
@@ -1099,7 +1107,9 @@ module.exports = {
             applicationsFilter.status = "rejected";
         }
         // Находим все заявки студента, которые он не скрыл в отфильтрованном виде
-        [err, applications] = await to(Application.find(applicationsFilter));
+        [err, applications] = await to(
+            Application.find(applicationsFilter)
+        );
         if (err) {
             return res.status(500).json({error: err.message});
         }
