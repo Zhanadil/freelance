@@ -42,8 +42,8 @@
   },
   "_moduleAliases": {
     "@models": "server/models",
-    "@helpers": "server/helpers",
     "@routes": "server/routes",
+    "@lib": "server/lib",
     "@controllers": "server/controllers",
     "@socket-controllers": "server/socket-controllers",
     "@configuration": "server/configuration",

@@ -4,7 +4,7 @@ const { hashPassword, signIn, signToken } = require('@controllers/helpers');
 
 const { Company, CompanyUtil } = require('@models/company');
 
-const mailer = require('@controllers/mailer');
+const mailer = require('@lib/mailer');
 
 module.exports = {
     newEmployee: async (req, res, next) => {

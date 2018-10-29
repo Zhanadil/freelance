@@ -3,7 +3,7 @@ const nanoid = require('nanoid');
 
 const { Company } = require('@models/company');
 const Student = require('@models/student');
-const mailer = require('@controllers/mailer');
+const mailer = require('@lib/mailer');
 const { hashPassword, signToken, signIn } = require('@controllers/helpers');
 
 // Company authorization methods controller
