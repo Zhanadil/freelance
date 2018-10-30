@@ -9,26 +9,24 @@ const fileUpload = require('express-fileupload');
 const cors = require('cors');
 const JWT = require('jsonwebtoken');
 const http = require('http');
-
+const logger = require('@root/logger');
+const adminRouter = require('@routes/admin');
+const studentRouter = require('@routes/student');
+const companyRouter = require('@routes/company');
+const generalRouter = require('@routes/general');
 const mailer = require('@lib/mailer');
-mailer.init(
-    'znurtoleuov@gmail.com',
-    '3.3&d6Q,oL'
-);
-
 const app = express();
 const server = http.createServer(app);
 
 // Инициализируем сокетный сервер
 require('@root/socket')(server);
 
-const logger = require('@root/logger');
-const adminRouter = require('@routes/admin');
-const studentRouter = require('@routes/student');
-const companyRouter = require('@routes/company');
-const generalRouter = require('@routes/general');
+const JWT_SECRET = config.get('JWT_SECRET');
 
-const { JWT_SECRET } = require('@configuration');
+mailer.init(
+    'znurtoleuov@gmail.com',
+    '3.3&d6Q,oL'
+);
 
 mongoose.Promise = global.Promise;
 let connectionOptions = {

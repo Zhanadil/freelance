@@ -3,5 +3,6 @@
     "LOGS_DIRECTORY": "/srv/freelance/dev/logs",
     "RESOURCES_DIRECTORY": "/srv/freelance/dev/resources",
     "FILE_SERVER_HOST": "localhost",
-    "FILE_SERVER_PORT": 4000
+    "FILE_SERVER_PORT": 4000,
+    "JWT_SECRET": "htJIPMqj9PlWjm4iF7Npcmgu3FPt9Sy0gcIrDFRJ"
 }
