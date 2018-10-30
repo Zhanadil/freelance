@@ -1,12 +1,11 @@
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const JwtStrategy = require('passport-jwt').Strategy;
-const GooglePlusTokenStrategy = require('passport-google-plus-token');
 const { ExtractJwt } = require('passport-jwt');
 
 const to = require('await-to-js').default;
 
-const { JWT_SECRET, GOOGLE_ID, GOOGLE_SECRET } = require('@configuration');
+const { JWT_SECRET } = require('@configuration');
 const Student = require('@models/student');
 const { Company } = require('@models/company');
 
@@ -49,51 +48,6 @@ passport.use('jwt-student', new JwtStrategy({
         return done(null, student);
     } catch(error) {
         return done(error, false);
-    }
-}));
-
-// Log in by "Sign in with Google" button
-passport.use('googleToken-student', new GooglePlusTokenStrategy({
-    clientID: GOOGLE_ID,
-    clientSecret: GOOGLE_SECRET
-}, async(accessToken, refreshToken, profile, done) => {
-    try {
-        // Student registered via "Sign in with Google"
-        const existingStudent = await Student.findOne({ "googleId": profile.id  });
-        if (existingStudent) {
-            return done(null, existingStudent);
-        }
-
-        // Find student registered locally via email and password and set his
-        // google id
-        const locallyRegStudent = await Student.findOneAndUpdate(
-            // Filter by email
-            {
-                "email": profile.emails[0].value
-            },
-            // Update google id
-            {
-                "googleId": profile.id
-            },
-            // Return updated document: true
-            {
-                new: true
-            },
-        );
-        if (locallyRegStudent) {
-            return done(null, locallyRegStudent);
-        }
-
-        const newStudent = new Student({
-            method: 'google',
-            google_id: profile.id,
-            email: profile.emails[0].value,
-        });
-
-        await newStudent.save();
-        return done(null, newStudent);
-    } catch(error) {
-        return done(error, false, error.message);
     }
 }));
 
@@ -141,51 +95,6 @@ passport.use('jwt-company', new JwtStrategy({
         return done(null, company);
     } catch(error) {
         return done(error, false);
-    }
-}));
-
-// Log in by "Sign in with Google" button
-passport.use('googleToken-company', new GooglePlusTokenStrategy({
-    clientID: GOOGLE_ID,
-    clientSecret: GOOGLE_SECRET
-}, async(accessToken, refreshToken, profile, done) => {
-    try {
-        // Company registered via "Sign in with Google"
-        const existingCompany = await Company.findOne({ "googleId": profile.id  });
-        if (existingCompany) {
-            return done(null, existingCompany);
-        }
-
-        // Find student registered locally via email and password and set his
-        // google id
-        const locallyRegCompany = await Company.findOneAndUpdate(
-            // Filter by email
-            {
-                "credentials.email": profile.emails[0].value
-            },
-            // Update google id
-            {
-                "credentials.googleId": profile.id
-            },
-            // Return updated document: true
-            {
-                new: true
-            },
-        );
-        if (locallyRegCompany) {
-            return done(null, locallyRegCompany);
-        }
-
-        const newCompany = new Company({
-            method: 'google',
-            google_id: profile.id,
-            email: profile.emails[0].value,
-        });
-
-        await newCompany.save();
-        return done(null, newCompany);
-    } catch(error) {
-        return done(error, false, error.message);
     }
 }));
 
