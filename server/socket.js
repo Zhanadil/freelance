@@ -2,7 +2,7 @@ const socketio = require('socket.io');
 const jwt = require('jsonwebtoken');
 const to = require('await-to-js').default;
 
-const { JWT_SECRET } = require('@configuration');
+const JWT_SECRET = require('config').get('JWT_SECRET');
 
 const Student = require('@models/student');
 const { Company } = require('@models/company');

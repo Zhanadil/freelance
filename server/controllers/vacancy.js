@@ -5,7 +5,7 @@ const to = require('await-to-js').default;
 const { Company } = require('@models/company');
 const Student = require('@models/student');
 const { Application, Vacancy } = require('@models/vacancy');
-const { JWT_SECRET } = require('@configuration');
+const JWT_SECRET = require('config').get('JWT_SECRET');
 
 statusId = (requester, status, sender) => {
     if (status === "pending" && sender !== requester) {
