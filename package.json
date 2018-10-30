@@ -44,7 +44,7 @@
     "@models": "server/models",
     "@routes": "server/routes",
     "@lib": "server/lib",
-    "@controllers": "server/controllers",
+    "@controllers": "server/routes/controllers",
     "@socket-controllers": "server/socket-controllers",
     "@configuration": "server/configuration",
     "@root": "server",
