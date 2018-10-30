@@ -9,12 +9,11 @@ const fileUpload = require('express-fileupload');
 const cors = require('cors');
 const JWT = require('jsonwebtoken');
 const http = require('http');
+
 const logger = require('@root/logger');
-const adminRouter = require('@routes/admin');
-const studentRouter = require('@routes/student');
-const companyRouter = require('@routes/company');
-const generalRouter = require('@routes/general');
+const router = require('@routes');
 const mailer = require('@lib/mailer');
+
 const app = express();
 const server = http.createServer(app);
 
@@ -75,10 +74,7 @@ app.use((req, res, next) => {
     }
 });
 
-app.use('/admin', adminRouter);
-app.use('/student', studentRouter);
-app.use('/company', companyRouter);
-app.use('/', generalRouter);
+app.use('/', router);
 
 app.use((req, res, next) => {
     return res.status(404).send('sorry, page not found');
