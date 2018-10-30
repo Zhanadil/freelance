@@ -9,6 +9,7 @@ const fileUpload = require('express-fileupload');
 const cors = require('cors');
 const JWT = require('jsonwebtoken');
 const http = require('http');
+const ip = require('ip');
 
 const logger = require('@root/logger');
 const router = require('@routes');
@@ -20,10 +21,11 @@ class App {
     constructor() {
         let JWT_SECRET = this.JWT_SECRET = config.get('JWT_SECRET');
         this.env = config.util.getEnv('NODE_ENV');
-        this.port = config.util.getEnv('PORT') || 3000;
+        this.port = process.env.PORT || 3000;
+        this.host = process.env.HOST || ip.address();
 
-        let express = this.express = Express();
-        this.server = http.createServer(express);
+        this.express = Express();
+        this.server = http.createServer(this.express);
 
         // Инициализируем сокетный сервер
         applySockets(this.server);
@@ -47,15 +49,22 @@ class App {
         mongoose.connect(
             config.DBHost,
             connectionOptions,
-            function(err, db){
+            (err, db) => {
                 if(err){
                     console.log(`${err.message}`);
                     //logger.emerg(`mongodb error: ${err.message}`);
-                } else {
-                    logger.info('mongodb successfully started');
+                    process.exit(1);
                 }
+                logger.info('mongodb successfully started');
+                this.applyRouters(this.express);
             }
         )
+    }
+
+    applyRouters(express) {
+        if (!express) {
+            express = this.express;
+        }
 
         // Подключаем нужные нам миддлы
         express.use(body_parser.json());
@@ -70,7 +79,7 @@ class App {
                 next();
             } else {
                 // If token is received, then decode
-                JWT.verify(req.headers.authorization, JWT_SECRET, (err, decoded) => {
+                JWT.verify(req.headers.authorization, this.JWT_SECRET, (err, decoded) => {
                     if (err) {
                         logger.info(req.url, {info: "incorrect token"});
                     } else {
