@@ -18,6 +18,8 @@ mailer.init(
 
 const app = express();
 const server = http.createServer(app);
+
+// Инициализируем сокетный сервер
 require('@root/socket')(server);
 
 const logger = require('@root/logger');
@@ -29,7 +31,7 @@ const generalRouter = require('@routes/general');
 const { JWT_SECRET } = require('@configuration');
 
 mongoose.Promise = global.Promise;
-var connectionOptions = {
+let connectionOptions = {
     auth: {
         authSource: "admin"
     },
@@ -79,5 +81,16 @@ app.use('/admin', adminRouter);
 app.use('/student', studentRouter);
 app.use('/company', companyRouter);
 app.use('/', generalRouter);
+
+app.use((req, res, next) => {
+    return res.status(404).send('sorry, page not found');
+});
+
+app.use((err, req, res, next) => {
+    // TODO: log this.
+    return res.status(err.status || 500).json({
+        error: err.message
+    });
+});
 
 module.exports = server;
