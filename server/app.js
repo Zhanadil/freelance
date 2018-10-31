@@ -10,8 +10,8 @@ const cors = require('cors');
 const JWT = require('jsonwebtoken');
 const http = require('http');
 const ip = require('ip');
+const mkdirp = require('mkdirp');
 
-const logger = require('@root/logger');
 const router = require('@routes');
 const mailer = require('@lib/mailer');
 
@@ -19,10 +19,21 @@ const applySockets = require('@root/socket');
 
 class App {
     constructor() {
+        let configError = this.checkConfigs();
+        if (configError) {
+            console.log(configError);
+            process.exit(2);
+        }
+
         let JWT_SECRET = this.JWT_SECRET = config.get('JWT_SECRET');
-        this.env = config.util.getEnv('NODE_ENV');
+        this.env = process.env.NODE_ENV;
         this.port = process.env.PORT || 3000;
         this.host = process.env.HOST || ip.address();
+        this.logs_directory = config.get('LOGS_DIRECTORY');
+        this.resources_directory = config.get('RESOURCES_DIRECTORY');
+
+        // Создаем папки с логами и ресурсами если их нет.
+        this.ensureDirectories();
 
         this.express = Express();
         this.server = http.createServer(this.express);
@@ -51,14 +62,41 @@ class App {
             connectionOptions,
             (err, db) => {
                 if(err){
-                    console.log(`${err.message}`);
+                    console.log(err);
                     //logger.emerg(`mongodb error: ${err.message}`);
                     process.exit(1);
                 }
-                logger.info('mongodb successfully started');
+                // bunyan.info('mongodb successfully started')
+                // logger.info();
                 this.applyRouters(this.express);
             }
         )
+    }
+
+    checkConfigs() {
+        if (!config.has('RESOURCES_DIRECTORY')) {
+            return 'Resources directory path has not been declared';
+        }
+        if (!config.has('LOGS_DIRECTORY')) {
+            return 'Logs directory path has not been declared';
+        }
+        if (!config.has('JWT_SECRET')) {
+            return 'JWT secret has not been declared';
+        }
+        return null;
+    }
+
+    ensureDirectories() {
+        try {
+            let ldir = mkdirp.sync(this.logs_directory);
+            mkdirp.sync(this.logs_directory);
+            let stats = fs.statSync(this.logs_directory)
+            mkdirp.sync(this.resources_directory);
+        } catch(err) {
+            console.log('Could not create directories');
+            console.log(err);
+            process.exit(3);
+        }
     }
 
     applyRouters(express) {
@@ -71,25 +109,7 @@ class App {
         express.use(fileUpload());
         express.use(cors());
 
-        // Подключаем логгер
-        express.use((req, res, next) => {
-            // If no token received
-            if (req.headers.authorization === undefined) {
-                logger.info(req.url, {info: "no token"})
-                next();
-            } else {
-                // If token is received, then decode
-                JWT.verify(req.headers.authorization, this.JWT_SECRET, (err, decoded) => {
-                    if (err) {
-                        logger.info(req.url, {info: "incorrect token"});
-                    } else {
-                        // If token is correct, then log credentials
-                        logger.info(req.url, {sub: decoded.sub});
-                    }
-                    next();
-                });
-            }
-        });
+        express.use(require('@root/logger'));
 
         // Подключаем роутеры
         express.use('/', router);

@@ -1,39 +1,35 @@
-const winston = require('winston');
+const expressBunyan = require('express-bunyan-logger');
+const bunyan = require('bunyan');
+const RotatingFileStream = require('bunyan-rotating-file-stream');
+const path = require('path');
 const config = require('config');
-const format = winston.format;
 
-// Logger logs both to files located in logs/ and to console.
-// If it's in production, then it logs only everything above warn level to console.
-// format is "${timestamp} [${userInfo}] ${log_level}: ${message}"
-const logger = winston.createLogger({
-    transports: [
-        new winston.transports.File({
-            filename: config.util.getEnv('NODE_ENV') === 'dev'
-                ? `${config.LOGS_DIRECTORY}/access_dev.log` : `${config.LOGS_DIRECTORY}/access_prod.log`,
-            level: config.util.getEnv('NODE_ENV') === 'dev' ? 'debug' : 'info',
-        }),
-        new winston.transports.Console({
-            level: config.util.getEnv('NODE_ENV') === 'dev' ? 'debug' : 'warn',
-        })
+let bunyanOptions = {
+    name: 'freelance',
+    streams: [
+        {
+            stream: new RotatingFileStream({
+                path: path.join(config.get('LOGS_DIRECTORY'), '%d-%b-%y.log'),
+                period: '1d',          // daily rotation
+                totalFiles: 10,        // keep up to 10 back copies
+                rotateExisting: true,  // Give ourselves a clean file when we start up, based on period
+                threshold: '10m',      // Rotate log files larger than 10 megabytes
+            }),
+            level: 'info'
+        },
     ],
-    format: format.combine(
-            format.timestamp(),
-            format.printf(options => {
-                var userInfo = undefined;
-                // If user credentials are not received, then try to print info parameter,
-                // otherwise print "general log"
-                if (options.sub === undefined) {
-                    userInfo = options.info || "general log";
-                } else {
-                    // If user credentials are received, then print ${user type}/${user id}
-                    userInfo = (options.sub.type + "/" + options.sub.id);
-                }
-                return `${options.timestamp} ` +
-                       `[${userInfo}] ` +
-                       `${options.level}: ${options.message}`
-            }
-        )
-    )
-});
+    serializers: {
+        req: bunyan.stdSerializers.req,
+        res: bunyan.stdSerializers.res,
+    },
+};
 
-module.exports = logger;
+// Печатаем логи в консоль если не продакшн
+if (process.env.NODE_ENV === 'dev') {
+    bunyanOptions.streams.push({
+        stream: process.stdout,
+        level: 'debug'
+    });
+}
+
+module.exports = expressBunyan(bunyanOptions);

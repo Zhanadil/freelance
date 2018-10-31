@@ -4,7 +4,6 @@ const { Company } = require('@models/company');
 const Student = require('@models/student');
 const Questionnaire = require('@models/questionnaire');
 const helpers = require('@controllers/helpers');
-const logger = require('@root/logger');
 
 const to = require('await-to-js').default;
 
@@ -477,8 +476,6 @@ module.exports = {
     studentUpdateImage: (dir_path) => {
         return (req, res, next) => {
             var file = req.files.avatar;
-
-            logger.debug(file.name);
 
             var image_name = req.user.id;
             //TODO: support jpg.
