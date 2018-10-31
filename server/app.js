@@ -63,11 +63,8 @@ class App {
             (err, db) => {
                 if(err){
                     console.log(err);
-                    //logger.emerg(`mongodb error: ${err.message}`);
                     process.exit(1);
                 }
-                // bunyan.info('mongodb successfully started')
-                // logger.info();
                 this.applyRouters(this.express);
             }
         )
@@ -109,6 +106,8 @@ class App {
         express.use(fileUpload());
         express.use(cors());
 
+        // Логгер обязательно должен быть вызван после создания папок с логами
+        // Иначе может крашнуться.
         express.use(require('@root/logger'));
 
         // Подключаем роутеры
