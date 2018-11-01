@@ -58,13 +58,8 @@ module.exports = {
         // Create new vacancy.
         new Vacancy(details).save((err, vacancy) => {
             if (err) {
-                return res.status(500).send(err.message);
+                next(err);
             }
-
-            // Add vacancy to company's vacancy list.
-            company.vacancies.push(vacancy._id);
-
-            company.save();
 
             return res.status(200).json({
                 vacancy
@@ -158,6 +153,11 @@ module.exports = {
             }
             if (application.activityState === 'deleted') {
                 return res.status(400).send('application was already deleted, cannot reapply');
+            }
+            if (application.activityState === 'inactive') {
+                let err = new Error('application is inactive, cannot apply');
+                err.status = 403;
+                return next(err);
             }
             application.status = 'pending';
             application.sender = 'company';
@@ -327,6 +327,11 @@ module.exports = {
             if (application.activityState === 'deleted') {
                 return res.status(400).send('application was already deleted, cannot reapply');
             }
+            if (application.activityState === 'inactive') {
+                let err = new Error('application is inactive, cannot apply');
+                err.status = 403;
+                return next(err);
+            }
             application.status = 'pending';
             application.sender = 'student';
             application.coverLetter = coverLetter;
@@ -351,10 +356,6 @@ module.exports = {
             companyDiscarded: false,
         });
         await application.save();
-
-        // Добавляем вакансию в список вакансий связанных со студентом
-        student.vacancies.push(req.body.vacancyId);
-        await student.save();
 
         return res.status(200).send(application);
     },
@@ -385,9 +386,6 @@ module.exports = {
         Application.updateMany({
             vacancyId: req.body.vacancyId,
             activityState: 'active',
-            // _id: {
-            //     $ne: application._id
-            // },
         }, {
             activityState: 'inactive'
         }, (err) => {
@@ -452,9 +450,6 @@ module.exports = {
         Application.updateMany({
             vacancyId: req.body.vacancyId,
             activityState: 'active',
-            // _id: {
-            //     $ne: application._id
-            // },
         }, {
             activityState: 'inactive'
         }, (err) => {
@@ -488,7 +483,9 @@ module.exports = {
         return res.status(200).send(vacancy);
     },
 
-    // Компания может отменить заявку если она не была принята.
+    // Отмена заявки компании.
+    //
+    // Компания не может отменить заявку если она уже была принята.
     // Вместо этого нужно расторгнуть контракт (/company/vacancy/revoke)
     companyCancelApplication: async (req, res, next) => {
         const { vacancyId, studentId } = req.body;
@@ -509,6 +506,11 @@ module.exports = {
         // Компания не может отменить запрос студента, она может его отклонить
         if (application.sender === 'student') {
             return res.status(400).send('company cannot cancel student\'s request');
+        }
+        if (application.activityState === 'inactive') {
+            let err = new Error('application is inactive, cannot apply');
+            err.status = 403;
+            return next(err);
         }
 
         // Находим задачу в списке текущих
@@ -592,41 +594,58 @@ module.exports = {
     // Удаляет принятую заявку, реактивирует все остальные и переносит задачу
     // из текущих
     // req.body: {
-    //     vacancyId: String,
-    //     studentId: String
+    //     vacancyId: String
     // }
     companyRevokeApplication: async (req, res, next) => {
-        const { vacancyId, studentId } = req.body;
-        var taskPromise = Vacancy.findById(vacancyId).exec();
-        var applicationPromise = Application.findOne({
-            vacancyId,
-            studentId,
-        }).exec();
+        let returnError;
+        const { vacancyId } = req.body;
 
-        // Реактивируем все заявки кроме отмененной
-        Application.updateMany({
-            vacancyId,
-            studentId: {
-                $ne: studentId,
-            },
-            activityState: 'inactive',
-        }, {
-            activityState: 'active'
-        }, (err) => {
-            if (err) {
-                console.log(err);
-            }
-        });
-
+        // Находим задачу
         var [err, task] = await to(
-            taskPromise
+            Vacancy.findById(vacancyId)
+        );
+        if (err) {
+            return next(err);
+        }
+        if (!task) {
+            returnError = new Error('task not found');
+            returnError.status = 404;
+
+            return next(returnError);
+        }
+        if (task.state !== 'ongoing' || !task.freelancerId) {
+            returnError = new Error(`you cannot cancel ${task.state} task`);
+            returnError.state = 403;
+
+            return next(returnError);
+        }
+
+        // Находим заявку фрилансера который работает над задачей
+        var currentApplication;
+        [err, currentApplication] = await to(
+            Application.findOne({
+                vacancyId,
+                studentId: task.freelancerId
+            })
         );
         if (err) {
             return res.status(500).send(err.message);
         }
-        if (!task) {
-            return res.status(400).send('task not found');
+        if (!currentApplication) {
+            return res.status(400).send('application not found');
         }
+
+        // Меняем статус заявки на 'revoked'
+        currentApplication.status = 'revoked';
+        currentApplication.activityState = 'deleted';
+        [err] = await to(
+            currentApplication.save()
+        )
+        if (err) {
+            return next(err);
+        }
+
+        // Меняем статус задачи и удаляем фрилансера из задачи
         task.state = 'pending';
         task.freelancerId = undefined;
 
@@ -637,21 +656,13 @@ module.exports = {
             return res.status(500).send(err.message);
         }
 
-        var currentApplication;
-        [err, currentApplication] = await to(
-            applicationPromise
-        );
-        if (err) {
-            return res.status(500).send(err.message);
-        }
-        if (!currentApplication) {
-            return res.status(400).send('application not found');
-        }
-
-        currentApplication.status = 'revoked';
-        currentApplication.activityState = 'deleted';
-
-        currentApplication.save((err) => {
+        // Реактивируем все неактивные заявки
+        Application.updateMany({
+            vacancyId,
+            activityState: 'inactive',
+        }, {
+            activityState: 'active'
+        }, (err) => {
             if (err) {
                 console.log(err);
             }

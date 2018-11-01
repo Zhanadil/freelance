@@ -38,6 +38,7 @@ const studentVacancyApplicationSchema = joi.object().keys({
 const companyVacancyApplicationSchema = studentVacancyApplicationSchema.keys({
     studentId: joi.string().required()
 });
+const companyRevokeApplicationSchema = studentVacancyApplicationSchema;
 const studentAnswerSchema = joi.object().keys({
     answers: joi.array().items(joi.string()),
 });
@@ -139,6 +140,7 @@ module.exports = {
         studentVacancyApplySchema,
         studentVacancyApplicationSchema,
         companyVacancyApplicationSchema,
+        companyRevokeApplicationSchema,
         studentAnswerSchema,
         getVacancyById,
         getAllVacancies,
