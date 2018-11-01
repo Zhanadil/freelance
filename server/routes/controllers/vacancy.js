@@ -68,30 +68,55 @@ module.exports = {
     },
 
     // Удалить вакансию по айди
-    removeVacancy: async (req, res, next) => {
-        var err, vacancy;
-        [err, vacancy] = await to(Vacancy.findById(req.params.id));
+    // Статус вакансии и всех заявок становится 'deleted'
+    removeTask: async (req, res, next) => {
+        const vacancyId = req.params.id;
+        let err, vacancy;
+        // Находим задачу по айди
+        [err, vacancy] = await to(
+            Vacancy.findOne({
+                _id: vacancyId,
+                companyId: req.account._id,
+            })
+        );
         if (err) {
-            return res.status(500).json({error: err.message});
+            return next(err);
         }
         if (!vacancy) {
-            return res.status(400).json({error: "vacancy doesn't exist"});
+            err = new Error('vacancy not found');
+            err.status = 404;
+
+            return next(err);
         }
-        if (vacancy.companyId !== req.account._id.toString()) {
-            return res.status(403).json({error: "forbidden, vacancy created by other company"});
+        if (vacancy.state !== 'pending') {
+            err = new Error(`vacancy state is ${vacancy.state}, cannot remove`);
+            err.status = 403;
+
+            return next(err);
         }
 
-        [err] = await to(Vacancy.deleteOne({_id: req.params.id}));
+        // Меняем статус задачи на удаленную
+        vacancy.state = 'deleted';
+        [err, vacancy] = await to(
+            vacancy.save()
+        );
         if (err) {
-            return res.status(500).json({error: err.message});
+            return next(err);
         }
 
-        [err] = await to(Application.deleteMany({vacancyId: req.params.id}));
+        // Меняем статус заявок связанных с задачей на удаленные
+        [err] = await to(
+            Application.updateMany({
+                vacancyId
+            }, {
+                activityState: 'deleted'
+            })
+        );
         if (err) {
-            return res.status(500).json({error: err.message});
+            return next(err);
         }
 
-        return res.status(200).json({status: "ok"});
+        return res.status(200).send(vacancy);
     },
 
     // Компания отправляет заявку на вакансию студенту
