@@ -171,10 +171,6 @@ module.exports = {
             return res.status(200).send(application);
         }
 
-        // Add vacancy to student's vacancy list.
-        student.vacancies.push(req.body.vacancyId);
-        studentPromise = student.save();
-
         var applicationPromise = (new Application({
             vacancyId: req.body.vacancyId,
             companyId: req.account._id,
@@ -591,6 +587,125 @@ module.exports = {
         });
     },
 
+    // Компания отклоняет заявку студента
+    companyRejectApplication: async (req, res, next) => {
+        const { vacancyId, studentId } = req.body;
+        const vacancyPromise = Vacancy.findOne({
+            _id: vacancyId,
+            // Можно менять статус заявки, только если вакансия в процессе поиска
+            state: 'pending',
+        }).exec();
+        const applicationPromise = Application.findOne({
+            vacancyId,
+            studentId,
+            // Компания может отменить заявку только если она активна,
+            // отправитель студент и статус "в ожидании"
+            activityState: 'active',
+            sender: 'student',
+            status: 'pending',
+        }).exec();
+
+        // Находим задачу
+        let [err, vacancy] = await to(
+            vacancyPromise
+        );
+        if (err) {
+            return next(err);
+        }
+        if (!vacancy) {
+            err = new Error('vacancy not found');
+            err.status(404);
+
+            return next(err);
+        }
+
+        // Находим заявку
+        let application;
+        [err, application] = await to(
+            applicationPromise
+        );
+        if (err) {
+            return next(err);
+        }
+        if (!application) {
+            err = new Error('application not found');
+            err.status(404);
+
+            return next(err);
+        }
+
+        // Меняем статус заявки
+        application.status = 'rejected';
+        [err, application] = await to(
+            application.save()
+        );
+        if (err) {
+            return next(err);
+        }
+
+        return res.status(200).send(application);
+    },
+
+    // Студент отклоняет заявку компании
+    studentRejectApplication: async (req, res, next) => {
+        const { vacancyId } = req.body;
+        const studentId = req.account._id.toString();
+        const vacancyPromise = Vacancy.findOne({
+            _id: vacancyId,
+            // Можно менять статус заявки, только если вакансия в процессе поиска
+            state: 'pending',
+        }).exec();
+        const applicationPromise = Application.findOne({
+            vacancyId,
+            studentId,
+            // Компания может отменить заявку только если она активна,
+            // отправитель студент и статус "в ожидании"
+            activityState: 'active',
+            sender: 'company',
+            status: 'pending',
+        }).exec();
+
+        // Находим задачу
+        let [err, vacancy] = await to(
+            vacancyPromise
+        );
+        if (err) {
+            return next(err);
+        }
+        if (!vacancy) {
+            err = new Error('vacancy not found');
+            err.status = 404;
+
+            return next(err);
+        }
+
+        // Находим заявку
+        let application;
+        [err, application] = await to(
+            applicationPromise
+        );
+        if (err) {
+            return next(err);
+        }
+        if (!application) {
+            err = new Error('application not found');
+            err.status = 404;
+
+            return next(err);
+        }
+
+        // Меняем статус заявки
+        application.status = 'rejected';
+        [err, application] = await to(
+            application.save()
+        );
+        if (err) {
+            return next(err);
+        }
+
+        return res.status(200).send(application);
+    },
+
     // Удаляет принятую заявку, реактивирует все остальные и переносит задачу
     // из текущих
     // req.body: {
@@ -703,124 +818,6 @@ module.exports = {
         })
     },
 
-    // Изменить статус вакансии, requirements для каждого случая брать из statusRequirements.
-    // Для того чтобы изменить статус, нынешний статус должен быть из массива requirements.status
-    // И отправитель должен быть requirements.sender
-    // Пример использования:
-    //
-    // VacancyController = require('@controllers/vacancy');
-    // ...
-    // vacancyRouter.post('/accept',
-    //    VacancyController.changeStatus(VacancyController.statusRequirements.studentAccepts, 'accepted'));
-    changeStatus: (requirements, finalStatus) => {
-        // Middleware для роутера.
-        // req.body: {
-        //      vacancyId: String
-        //      studentId: String // (не требуется если запрос идет со стороны самого студента)
-        // }
-        return async (req, res, next) => {
-            // Проверяем от кого исходил запрос, от студента или от компании
-            var sender;
-            JWT.verify(req.headers.authorization, JWT_SECRET, (err, decoded) => {
-                if (err) {
-                    return res.status(500).json({error: err.message});
-                }
-                sender = decoded.sub.type;
-            });
-            var studentId = (sender === "company" ? req.body.studentId : req.account._id);
-            var vacancyId = req.body.vacancyId;
-            // Проверяем айди вакансии на действительность
-            await Vacancy.findById(vacancyId, (err, vacancy) => {
-                if (err) {
-                    return res.status(500).json({error: err.message});
-                }
-                if (!vacancy) {
-                    return res.status(400).json({error: "vacancy not found"});
-                }
-                // Если запрос исходил от компании, то вакансия должна принодлежать только ей
-                if (sender == "company" && vacancy.companyId !== req.account._id.toString()) {
-                    return res.status(403).json({error: "wrong vacancyId"});
-                }
-            });
-
-            // Find the student.
-            var student = await Student.findById(studentId, (err) => {
-                if (err) {
-                    return res.status(500).json({error: err.message});
-                }
-            });
-            if (!student) {
-                return res.status(400).json({error: "student not found"});
-            }
-
-            var application = await Application.findOne(
-                    {studentId, vacancyId},
-                    (err) => {
-                        if (err) {
-                            return res.status(500).json({error: err.message});
-                        }
-                    }
-                );
-
-            // Если заявка не существует
-            if (!application) {
-                return res.status(400).json({
-                    error: "application doesn't exist"
-                });
-            }
-
-            // Принять заявку можно только если заявка отправлена
-            // со стороны студента и статус заявки 'pending'
-            if (requirements.status !== undefined &&
-                    requirements.status.findIndex((element) => {
-                        return element === application.status
-                    }) === -1) {
-                return res.status(409).json({
-                    error: `status can't be changed, current status is: ${application.status}`
-                });
-            }
-            if (requirements.sender !== undefined && application.sender !== requirements.sender) {
-                return res.status(409).json({
-                    error: `status can't be changed, required sender is ${requirements.sender}`
-                });
-            }
-            application.status = finalStatus;
-            application.studentDiscarded = false;
-            application.companyDiscarded = false;
-
-            await application.save();
-
-            return res.status(200).json({status: "ok"});
-        }
-    },
-
-    statusRequirements: {
-        studentAccept: {
-            sender: 'company',
-            status: ['pending']
-        },
-        studentReject: {
-            sender: 'company',
-            status: ['pending', 'accepted']
-        },
-        studentCancel: {
-            sender: 'student',
-            status: ['pending', 'accepted']
-        },
-        companyAccept: {
-            sender: 'student',
-            status: ['pending']
-        },
-        companyReject: {
-            sender: 'student',
-            status: ['pending', 'accepted']
-        },
-        companyCancel: {
-            sender: 'company',
-            status: ['pending', 'accepted']
-        },
-    },
-
     // Студент скрывает заявку
     studentDiscardApplication: async (req, res, next) => {
         const application = await Application.findOne({
@@ -870,7 +867,7 @@ module.exports = {
             state: "pending",
         }, (err, vacancies) => {
             if (err) {
-                return next(err;)
+                return next(err);
             }
             return res.status(200).json({vacancies: vacancies});
         });
