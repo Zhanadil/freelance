@@ -18,7 +18,6 @@ const studentSchema = mongoose.Schema({
     lastName: String,
     phone: String,
     description: String,
-    vacancies: [String],
     belbinResults: [{
         categoryName: String,
         pointsNumber: Number,

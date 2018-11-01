@@ -866,13 +866,11 @@ module.exports = {
     // Get all vacancies related to this company, based on status written in request.
     getCompanyVacancies: async (req, res, next) => {
         Vacancy.find({
-            "_id": {
-                "$in": req.account.vacancies
-            },
-            "state": "pending",
+            companyId: req.account._id,
+            state: "pending",
         }, (err, vacancies) => {
             if (err) {
-                return res.status(500).json({error: err.message});
+                return next(err;)
             }
             return res.status(200).json({vacancies: vacancies});
         });

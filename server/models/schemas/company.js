@@ -20,7 +20,6 @@ const companySchema = mongoose.Schema({
     },
     phone: String,
     description: String,
-    vacancies: [String],
 });
 
 module.exports = companySchema;
