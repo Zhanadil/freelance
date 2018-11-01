@@ -110,6 +110,10 @@ router.use('/private', privateRouter);
 
 vacancyRouter.use(passport.authorize('jwt-student', {session: false}));
 
+vacancyRouter.post('/',
+    validateBody(schemas.getTasksSchema),
+    VacancyController.getFreelancerTasks);
+
 vacancyRouter.post('/apply',
     validateBody(schemas.studentVacancyApplySchema),
     VacancyController.studentApplication);
@@ -141,8 +145,6 @@ vacancyRouter.route('/getApplications')
 vacancyRouter.post('/:id',
     validateBody(schemas.getVacancyById),
     VacancyController.getVacancyByIdAsStudent);
-
-vacancyRouter.get('/ongoing', VacancyController.freelancerOngoingTasks);
 
 router.use('/vacancy', vacancyRouter);
 

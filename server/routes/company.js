@@ -114,7 +114,7 @@ vacancyRouter.route('/')
         VacancyController.newVacancy
     )
     .post(
-        validateBody(schemas.companyGetTasksSchema),
+        validateBody(schemas.getTasksSchema),
         VacancyController.getCompanyTasks
     );
 
@@ -152,8 +152,6 @@ vacancyRouter.get('/remove/:id', VacancyController.removeTask);
 vacancyRouter.route('/getApplications')
     .get(VacancyController.getCompanyApplications)
     .post(VacancyController.getCompanyApplications);
-
-vacancyRouter.get('/ongoing', VacancyController.companyOngoingTasks);
 
 router.use('/vacancy', vacancyRouter);
 
