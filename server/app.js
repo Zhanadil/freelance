@@ -1,4 +1,4 @@
-const express = require('express');
+const Express = require('express');
 const morgan = require('morgan');
 const body_parser = require('body-parser');
 const mongoose = require('mongoose');
@@ -9,86 +9,123 @@ const fileUpload = require('express-fileupload');
 const cors = require('cors');
 const JWT = require('jsonwebtoken');
 const http = require('http');
-const logger = require('@root/logger');
-const adminRouter = require('@routes/admin');
-const studentRouter = require('@routes/student');
-const companyRouter = require('@routes/company');
-const generalRouter = require('@routes/general');
+const ip = require('ip');
+const mkdirp = require('mkdirp');
+
+const router = require('@routes');
 const mailer = require('@lib/mailer');
-const app = express();
-const server = http.createServer(app);
 
-// Инициализируем сокетный сервер
-require('@root/socket')(server);
+const applySockets = require('@root/socket');
 
-const JWT_SECRET = config.get('JWT_SECRET');
+class App {
+    constructor() {
+        let configError = this.checkConfigs();
+        if (configError) {
+            console.log(configError);
+            process.exit(2);
+        }
 
-mailer.init(
-    'znurtoleuov@gmail.com',
-    '3.3&d6Q,oL'
-);
+        let JWT_SECRET = this.JWT_SECRET = config.get('JWT_SECRET');
+        this.env = process.env.NODE_ENV;
+        this.port = process.env.PORT || 3000;
+        this.host = process.env.HOST || ip.address();
+        this.logs_directory = config.get('LOGS_DIRECTORY');
+        this.resources_directory = config.get('RESOURCES_DIRECTORY');
 
-mongoose.Promise = global.Promise;
-let connectionOptions = {
-    auth: {
-        authSource: "admin"
-    },
-    useNewUrlParser: true
-};
-if (config.util.getEnv('NODE_ENV') !== 'production') {
-    connectionOptions.auth = undefined;
-}
-mongoose.connect(
-    config.DBHost,
-    connectionOptions,
-    function(err, db){
-        if(err){
-            console.log(`${err.message}`);
-            //logger.emerg(`mongodb error: ${err.message}`);
-        } else {
-            logger.info('mongodb successfully started');
+        // Создаем папки с логами и ресурсами если их нет.
+        this.ensureDirectories();
+
+        this.express = Express();
+        this.server = http.createServer(this.express);
+
+        // Инициализируем сокетный сервер
+        applySockets(this.server);
+
+        mailer.init(
+            'znurtoleuov@gmail.com',
+            '3.3&d6Q,oL'
+        );
+
+        // Подключаем базу данных
+        mongoose.Promise = global.Promise;
+        let connectionOptions = {
+            auth: {
+                authSource: "admin"
+            },
+            useNewUrlParser: true
+        };
+        if (this.env !== 'production') {
+            connectionOptions.auth = undefined;
+        }
+        mongoose.connect(
+            config.DBHost,
+            connectionOptions,
+            (err, db) => {
+                if(err){
+                    console.log(err);
+                    process.exit(1);
+                }
+                this.applyRouters(this.express);
+            }
+        )
+    }
+
+    checkConfigs() {
+        if (!config.has('RESOURCES_DIRECTORY')) {
+            return 'Resources directory path has not been declared';
+        }
+        if (!config.has('LOGS_DIRECTORY')) {
+            return 'Logs directory path has not been declared';
+        }
+        if (!config.has('JWT_SECRET')) {
+            return 'JWT secret has not been declared';
+        }
+        return null;
+    }
+
+    ensureDirectories() {
+        try {
+            let ldir = mkdirp.sync(this.logs_directory);
+            mkdirp.sync(this.logs_directory);
+            let stats = fs.statSync(this.logs_directory)
+            mkdirp.sync(this.resources_directory);
+        } catch(err) {
+            console.log('Could not create directories');
+            console.log(err);
+            process.exit(3);
         }
     }
-)
 
-app.use(body_parser.json());
-app.use(fileUpload());
-app.use(cors());
+    applyRouters(express) {
+        if (!express) {
+            express = this.express;
+        }
 
-// Log all requests
-app.use((req, res, next) => {
-    // If no token received
-    if (req.headers.authorization === undefined) {
-        logger.info(req.url, {info: "no token"})
-        next();
-    } else {
-        // If token is received, then decode
-        JWT.verify(req.headers.authorization, JWT_SECRET, (err, decoded) => {
-            if (err) {
-                logger.info(req.url, {info: "incorrect token"});
-            } else {
-                // If token is correct, then log credentials
-                logger.info(req.url, {sub: decoded.sub});
-            }
-            next();
+        // Подключаем нужные нам миддлы
+        express.use(body_parser.json());
+        express.use(fileUpload());
+        express.use(cors());
+
+        // Логгер обязательно должен быть вызван после создания папок с логами
+        // Иначе может крашнуться.
+        express.use(require('@root/logger'));
+
+        // Подключаем роутеры
+        express.use('/', router);
+
+        // Обработка 404
+        express.use((req, res, next) => {
+            return res.status(404).send('sorry, page not found');
+        });
+
+        // Обработка ошибок
+        express.use((err, req, res, next) => {
+            // TODO: log this.
+            return res.status(err.status || 500).json({
+                error: err.message
+            });
         });
     }
-});
+}
 
-app.use('/admin', adminRouter);
-app.use('/student', studentRouter);
-app.use('/company', companyRouter);
-app.use('/', generalRouter);
-
-app.use((req, res, next) => {
-    return res.status(404).send('sorry, page not found');
-});
-
-app.use((err, req, res, next) => {
-    // TODO: log this.
-    return res.status(err.status || 500).json({
-        error: err.message
-    });
-});
-
-module.exports = server;
+module.exports = new App();

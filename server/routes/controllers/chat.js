@@ -2,7 +2,6 @@ const { Company } = require('@models/company');
 const Student = require('@models/student');
 const { Conversation, Message } = require('@models/chat');
 const helpers = require('@controllers/helpers');
-const logger = require('@root/logger');
 
 const to = require('await-to-js').default;
 
