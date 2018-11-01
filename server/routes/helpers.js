@@ -28,7 +28,7 @@ const newVacancySchema = joi.object().keys({
     vacancyName: joi.string().required(),
     deadline: joi.date().min('now').required(),
 });
-const companyGetTasksSchema = joi.object().keys({
+const getTasksSchema = joi.object().keys({
     states: joi.array().items(
         joi.string().valid(Vacancy.schema.paths.state.enumValues)
     ).unique(),
@@ -147,7 +147,7 @@ module.exports = {
         studentVacancyApplySchema,
         studentVacancyApplicationSchema,
         companyVacancyApplicationSchema,
-        companyGetTasksSchema,
+        getTasksSchema,
         completeTaskSchema,
         companyRevokeApplicationSchema,
         studentAnswerSchema,

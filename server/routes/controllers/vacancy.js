@@ -840,36 +840,6 @@ module.exports = {
         });
     },
 
-    companyOngoingTasks: (req, res, next) => {
-        Vacancy.find({
-            companyId: req.account.id,
-            state: 'ongoing'
-        }, (err, tasks) => {
-            if (err) {
-                return res.status(500).send(err.message);
-            }
-
-            return res.status(200).json({
-                tasks
-            });
-        })
-    },
-
-    freelancerOngoingTasks: (req, res, next) => {
-        Vacancy.find({
-            freelancerId: req.account.id,
-            state: 'ongoing'
-        }, (err, tasks) => {
-            if (err) {
-                return res.status(500).send(err.message);
-            }
-
-            return res.status(200).json({
-                tasks
-            });
-        })
-    },
-
     // Студент скрывает заявку
     studentDiscardApplication: async (req, res, next) => {
         const application = await Application.findOne({
@@ -912,11 +882,48 @@ module.exports = {
         return res.status(200).json({status: "ok"});
     },
 
-    // Get all vacancies related to this company, based on states
+    // Возвращает все задачи компании со статусом в запросе
+    // req.body: {
+    //     states: [enum('pending', 'ongoing', 'completed', 'deleted')]
+    // }
     getCompanyTasks: async (req, res, next) => {
         const [err, tasks] = await to(
             Vacancy.find({
                 companyId: req.account._id,
+                state: {
+                    '$in': req.body.states
+                }
+            })
+        );
+        if (err) {
+            return next(err);
+        }
+
+        let response = {
+            pending: [],
+            ongoing: [],
+            completed: [],
+            deleted: [],
+        };
+        tasks.forEach((vacancy) => {
+            response[vacancy.state].push(vacancy);
+        });
+
+        return res.status(200).send(response);
+    },
+
+    // Возвращает все задачи студента со статусом в запросе
+    // req.body: {
+    //     states: [enum('pending', 'ongoing', 'completed', 'deleted')]
+    // }
+    //
+    // Заметка:
+    // Смысла отправлять запрос по статусу 'pending' и 'deleted' нет, так как фрилансеры не
+    // значатся в задачах с такими статусами, но технически сделать такой запрос можно
+    getFreelancerTasks: async (req, res, next) => {
+        const [err, tasks] = await to(
+            Vacancy.find({
+                freelancerId: req.account._id,
                 state: {
                     '$in': req.body.states
                 }
