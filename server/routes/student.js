@@ -124,7 +124,7 @@ vacancyRouter.post('/accept',
 
 vacancyRouter.post('/reject',
     validateBody(schemas.studentVacancyApplicationSchema),
-    VacancyController.changeStatus(VacancyController.statusRequirements.studentReject, "rejected"));
+    VacancyController.studentRejectApplication);
 
 vacancyRouter.post('/discard',
     validateBody(schemas.studentVacancyApplicationSchema),
