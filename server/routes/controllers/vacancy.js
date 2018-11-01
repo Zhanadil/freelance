@@ -197,6 +197,8 @@ module.exports = {
         return res.status(200).send(application);
     },
 
+    // Компания помечает задачу как законченая.
+    // TODO: снять деньги со счета и перевести на счет фрилансера
     completeTask: async (req, res, next) => {
         let err;
         const vacancyId = req.body.vacancyId;
