@@ -46,7 +46,6 @@ module.exports = {
     //      cost: Number         // Макс зп
     //      deadline: String     // Дедлайн задачи
     // }
-    // WARNING: DONE
     newVacancy: async (req, res, next) => {
         var details = req.body;
 
@@ -67,7 +66,6 @@ module.exports = {
 
     // Удалить вакансию по айди
     // Статус вакансии и всех заявок становится 'deleted'
-    // WARNING: DONE
     removeTask: async (req, res, next) => {
         const vacancyId = req.params.id;
         let err, vacancy;
@@ -123,7 +121,6 @@ module.exports = {
     //      vacancyId: String
     //      studentId: String
     // }
-    // WARNING: DONE
     companyApplication: async (req, res, next) => {
         var vacancyPromise = Vacancy.findById(req.body.vacancyId).exec();
         var studentPromise = Student.findById(req.body.studentId).exec();
@@ -275,7 +272,6 @@ module.exports = {
     //      coverLetter: String,
     //      newCost: Number,
     // }
-    // WARNING: DONE
     studentApplication: async (req, res, next) => {
         // Айди компании которая создала вакансию, нужно для создания заявки
         var err, vacancy;
@@ -376,7 +372,6 @@ module.exports = {
         return res.status(200).send(application);
     },
 
-    // WARNING: DONE
     // Компания принимает заявку таланта на задачу
     // Удаляем все заявки и переносим задачу в базу текущих задач
     // Меняем стоимость работы на предложенную стоимость работником
@@ -460,7 +455,6 @@ module.exports = {
         });
     },
 
-    // WARNING: DONE
     // Работник принимает заявку компании на задачу
     // Удаляем все заявки и переносим задачу в базу текущих задач
     freelancerAcceptApplication: async (req, res, next) => {
@@ -541,7 +535,6 @@ module.exports = {
     //
     // Компания не может отменить заявку если она уже была принята.
     // Вместо этого нужно расторгнуть контракт (/company/vacancy/revoke)
-    // WARNING: DONE
     companyCancelApplication: async (req, res, next) => {
         const { vacancyId, studentId } = req.body;
         const vacancyPromise = Vacancy.findById(vacancyId).exec();
@@ -596,7 +589,6 @@ module.exports = {
         });
     },
 
-    // WARNING: DONE
     // Отменить заявку можно всем кроме работника который решает задачу
     freelancerCancelApplication: async (req, res, next) => {
         const vacancyId = req.body.vacancyId;
@@ -652,7 +644,6 @@ module.exports = {
     },
 
     // Компания отклоняет заявку студента
-    // WARNING: DONE
     companyRejectApplication: async (req, res, next) => {
         const { vacancyId, studentId } = req.body;
         const vacancyPromise = Vacancy.findOne({
@@ -712,7 +703,6 @@ module.exports = {
     },
 
     // Студент отклоняет заявку компании
-    // WARNING: DONE
     studentRejectApplication: async (req, res, next) => {
         const { vacancyId } = req.body;
         const studentId = req.account._id.toString();
@@ -777,7 +767,6 @@ module.exports = {
     // req.body: {
     //     vacancyId: String
     // }
-    // WARNING: DONE
     companyRevokeApplication: async (req, res, next) => {
         let returnError;
         const { vacancyId } = req.body;
@@ -901,7 +890,6 @@ module.exports = {
     // req.body: {
     //     states: [enum('pending', 'ongoing', 'completed', 'deleted')]
     // }
-    // WARNING: DONE
     getCompanyTasks: async (req, res, next) => {
         const [err, tasks] = await to(
             Vacancy.find({
@@ -936,7 +924,6 @@ module.exports = {
     // Заметка:
     // Смысла отправлять запрос по статусу 'pending' и 'deleted' нет, так как фрилансеры не
     // значатся в задачах с такими статусами, но технически сделать такой запрос можно
-    // WARNING: DONE
     getFreelancerTasks: async (req, res, next) => {
         const [err, tasks] = await to(
             Vacancy.find({
