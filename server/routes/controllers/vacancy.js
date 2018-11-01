@@ -379,6 +379,15 @@ module.exports = {
             return res.status(400).send('application inactive, cannot accept');
         }
 
+        // Меняем статус заявки на принято
+        application.status = 'accepted';
+        [err, application] = await to(
+            application.save()
+        );
+        if (err) {
+            return next(err);
+        }
+
         // Деактивируем заявки, принять их уже нельзя, отказаться можно если
         // твоя заявка не принята
         Application.updateMany({
@@ -416,7 +425,10 @@ module.exports = {
             return res.status(500).send(err.message);
         }
 
-        return res.status(200).send(vacancy);
+        return res.status(200).json({
+            application,
+            vacancy,
+        });
     },
 
     // Работник принимает заявку компании на задачу
@@ -441,6 +453,15 @@ module.exports = {
         // Принять неактивную заявку нельзя
         if (application.activityState !== 'active') {
             return res.status(400).send('application inactive, cannot accept');
+        }
+
+        // Меняем статус заявки на принято
+        application.status = 'accepted';
+        [err, application] = await to(
+            application.save()
+        );
+        if (err) {
+            return next(err);
         }
 
         // Деактивируем заявки, принять их уже нельзя, отказаться можно если
@@ -468,6 +489,7 @@ module.exports = {
             return res.status(500).send(err.message);
         }
 
+        // Меняем статус задачи на "в процессе работы"
         vacancy.state = 'ongoing';
         vacancy.freelancerId = req.account.id;
 
@@ -478,7 +500,10 @@ module.exports = {
             return res.status(500).send(err.message);
         }
 
-        return res.status(200).send(vacancy);
+        return res.status(200).json({
+            vacancy,
+            application,
+        });
     },
 
     // Отмена заявки компании.
