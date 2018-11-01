@@ -113,8 +113,9 @@ vacancyRouter.route('/')
         validateBody(schemas.newVacancySchema),
         VacancyController.newVacancy
     )
-    .get(
-        VacancyController.getCompanyVacancies
+    .post(
+        validateBody(schemas.companyGetTasksSchema),
+        VacancyController.getCompanyTasks
     );
 
 vacancyRouter.post('/apply',

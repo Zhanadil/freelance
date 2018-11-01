@@ -1,6 +1,7 @@
 const joi = require('joi');
 
 const Questionnaire = require('@models/questionnaire');
+const Vacancy = require('@models/vacancy').Vacancy;
 
 const authSchema = joi.object().keys({
     email: joi.string().email({ minDomainAtoms: 2 }).required(),
@@ -27,6 +28,11 @@ const newVacancySchema = joi.object().keys({
     vacancyName: joi.string().required(),
     deadline: joi.date().min('now').required(),
 });
+const companyGetTasksSchema = joi.object().keys({
+    states: joi.array().items(
+        joi.string().valid(Vacancy.schema.paths.state.enumValues)
+    ).unique(),
+})
 const studentVacancyApplySchema = joi.object().keys({
     vacancyId: joi.string().required(),
     coverLetter: joi.string().allow(""),
@@ -141,6 +147,7 @@ module.exports = {
         studentVacancyApplySchema,
         studentVacancyApplicationSchema,
         companyVacancyApplicationSchema,
+        companyGetTasksSchema,
         completeTaskSchema,
         companyRevokeApplicationSchema,
         studentAnswerSchema,
