@@ -129,6 +129,10 @@ vacancyRouter.post('/accept',
     validateBody(schemas.companyVacancyApplicationSchema),
     VacancyController.companyAcceptApplication);
 
+vacancyRouter.post('/complete',
+    validateBody(schemas.completeTaskSchema),
+    VacancyController.completeTask);
+    
 vacancyRouter.post('/reject',
     validateBody(schemas.companyVacancyApplicationSchema),
     VacancyController.companyRejectApplication);
