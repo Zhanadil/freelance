@@ -46,16 +46,14 @@ module.exports = {
     //      cost: Number         // Макс зп
     //      deadline: String     // Дедлайн задачи
     // }
+    // WARNING: DONE
     newVacancy: async (req, res, next) => {
         var details = req.body;
 
-        // Find Company which creates the vacancy.
-        const company = req.account;
+        // Добавляем компанию в вакансию
+        details.company = req.account;
 
-        details.companyId = company.id;
-        details.companyName = company.name;
-
-        // Create new vacancy.
+        // Создаем вакансию
         new Vacancy(details).save((err, vacancy) => {
             if (err) {
                 next(err);
@@ -69,6 +67,7 @@ module.exports = {
 
     // Удалить вакансию по айди
     // Статус вакансии и всех заявок становится 'deleted'
+    // WARNING: DONE
     removeTask: async (req, res, next) => {
         const vacancyId = req.params.id;
         let err, vacancy;
@@ -76,8 +75,8 @@ module.exports = {
         [err, vacancy] = await to(
             Vacancy.findOne({
                 _id: vacancyId,
-                companyId: req.account._id,
-            })
+                company: req.account._id,
+            }).populate('company')
         );
         if (err) {
             return next(err);
@@ -124,6 +123,7 @@ module.exports = {
     //      vacancyId: String
     //      studentId: String
     // }
+    // WARNING: DONE
     companyApplication: async (req, res, next) => {
         var vacancyPromise = Vacancy.findById(req.body.vacancyId).exec();
         var studentPromise = Student.findById(req.body.studentId).exec();
@@ -137,23 +137,11 @@ module.exports = {
         if (!vacancy) {
             return res.status(400).json({error: "vacancy not found"});
         }
-        if (vacancy.companyId !== req.account._id.toString()) {
+        if (vacancy.company._id.toString() !== req.account._id.toString()) {
             return res.status(403).json({error: "wrong vacancyId"});
         }
         if (vacancy.state !== 'pending') {
             return res.status(400).send('application stage is closed');
-        }
-
-        // Find the student.
-        var student;
-        [err, student] = await to(
-            studentPromise
-        );
-        if (err) {
-            return res.status(500).json({error: err.message});
-        }
-        if (!student) {
-            return res.status(400).json({error: "student not found"});
         }
 
         var application;
@@ -196,27 +184,30 @@ module.exports = {
             return res.status(200).send(application);
         }
 
-        var applicationPromise = (new Application({
-            vacancyId: req.body.vacancyId,
-            companyId: req.account._id,
-            studentId: req.body.studentId,
-            sender: "company",
-            studentDiscarded: false,
-            companyDiscarded: false,
-        })).save();
-
-        [err, application] = await to(
-            applicationPromise
-        );
-        if (err) {
-            return res.status(500).send(err.message);
-        }
-
-        [err] = await to(
+        // Find the student.
+        var student;
+        [err, student] = await to(
             studentPromise
         );
         if (err) {
-            return res.status(500).send(err.message);
+            return next(err);
+        }
+        if (!student) {
+            return res.status(400).json({error: "student not found"});
+        }
+
+        [err, application] = await to(
+            (new Application({
+                vacancyId: req.body.vacancyId,
+                companyId: req.account._id,
+                studentId: req.body.studentId,
+                sender: "company",
+                studentDiscarded: false,
+                companyDiscarded: false,
+            })).save()
+        );
+        if (err) {
+            return next(err);
         }
 
         return res.status(200).send(application);
@@ -231,7 +222,10 @@ module.exports = {
         // Находим задачу которую нужно выполнить
         let task;
         [err, task] = await to(
-            Vacancy.findById(vacancyId)
+            Vacancy
+                .findById(vacancyId)
+                .populate('company')
+                .populate('freelancer')
         );
         if (err) {
             return next(err);
@@ -281,6 +275,7 @@ module.exports = {
     //      coverLetter: String,
     //      newCost: Number,
     // }
+    // WARNING: DONE
     studentApplication: async (req, res, next) => {
         // Айди компании которая создала вакансию, нужно для создания заявки
         var err, vacancy;
@@ -297,7 +292,7 @@ module.exports = {
         if (vacancy.state !== 'pending') {
             return res.status(400).send('application stage is closed');
         }
-        var companyId = vacancy.companyId;
+        var companyId = vacancy.company._id;
 
         // Прикладное письмо
         var coverLetter = null;
@@ -341,8 +336,6 @@ module.exports = {
             // Отправить заявку повторно можно только если статус
             // заявки 'canceled' или 'rejected'
             if (application.status !== 'canceled' && application.status !== 'rejected') {
-                console.log(application);
-                console.log(application.status);
                 return res.status(409).json({
                     error: `student can't apply, current status is: ${application.status}`
                 });
@@ -383,6 +376,7 @@ module.exports = {
         return res.status(200).send(application);
     },
 
+    // WARNING: DONE
     // Компания принимает заявку таланта на задачу
     // Удаляем все заявки и переносим задачу в базу текущих задач
     // Меняем стоимость работы на предложенную стоимость работником
@@ -428,11 +422,21 @@ module.exports = {
             // Проблема в том, что запрос к этому моменту может быть завершен
         });
 
+        // Находим студента, чтобы вернуть вместе с заявкой
+        let student;
+        [err, student] = await to(
+            Student.findById(req.body.studentId)
+        );
+        if (err) {
+            return next(err);
+        }
+
+        let vacancy;
         // Находим вакансию по айди
-        var [err, vacancy] = await to(
+        [err, vacancy] = await to(
             Vacancy.findById(
                 req.body.vacancyId
-            )
+            ).populate('company')
         );
         if (err) {
             return res.status(500).send(err.message);
@@ -440,7 +444,7 @@ module.exports = {
 
         vacancy.cost = application.newCost || vacancy.cost;
         vacancy.state = 'ongoing';
-        vacancy.freelancerId = req.body.studentId;
+        vacancy.freelancer = student;
 
         // Переносим задачу в список текущих
         [err, vacancy] = await to(
@@ -456,6 +460,7 @@ module.exports = {
         });
     },
 
+    // WARNING: DONE
     // Работник принимает заявку компании на задачу
     // Удаляем все заявки и переносим задачу в базу текущих задач
     freelancerAcceptApplication: async (req, res, next) => {
@@ -509,6 +514,7 @@ module.exports = {
             Vacancy.findById(
                 req.body.vacancyId
             )
+            .populate('company')
         );
         if (err) {
             return res.status(500).send(err.message);
@@ -516,7 +522,7 @@ module.exports = {
 
         // Меняем статус задачи на "в процессе работы"
         vacancy.state = 'ongoing';
-        vacancy.freelancerId = req.account.id;
+        vacancy.freelancer = req.account;
 
         [err, vacancy] = await to(
             vacancy.save()
@@ -535,11 +541,12 @@ module.exports = {
     //
     // Компания не может отменить заявку если она уже была принята.
     // Вместо этого нужно расторгнуть контракт (/company/vacancy/revoke)
+    // WARNING: DONE
     companyCancelApplication: async (req, res, next) => {
         const { vacancyId, studentId } = req.body;
-        const vacancyPromise = Vacancy.findById(vacancyId);
+        const vacancyPromise = Vacancy.findById(vacancyId).exec();
         // Находим заявку
-        var [err, application] = await to(
+        let [err, application] = await to(
             Application.findOne({
                 vacancyId,
                 studentId,
@@ -549,14 +556,14 @@ module.exports = {
             return res.status(500).send(err.message);
         }
         if (!application) {
-            return res.status(400).send('application not found');
+            return res.status(404).send('application not found');
         }
         // Компания не может отменить запрос студента, она может его отклонить
         if (application.sender === 'student') {
             return res.status(400).send('company cannot cancel student\'s request');
         }
         if (application.activityState === 'inactive') {
-            let err = new Error('application is inactive, cannot apply');
+            let err = new Error('application is inactive, cannot cancel');
             err.status = 403;
             return next(err);
         }
@@ -572,7 +579,7 @@ module.exports = {
         // Если задача нашлась в списке текущих и айди работника над задачей
         // совпадает с работником в заявке, то значит он работает над ней.
         // И отменить заявку он уже не может.
-        if (vacancy.state === 'ongoing' && vacancy.freelancerId === studentId) {
+        if (vacancy.state === 'ongoing' && vacancy.freelancer._id === studentId) {
             return res.status(400).send('company cannot cancel ongoing application');
         }
 
@@ -589,10 +596,11 @@ module.exports = {
         });
     },
 
+    // WARNING: DONE
     // Отменить заявку можно всем кроме работника который решает задачу
     freelancerCancelApplication: async (req, res, next) => {
         const vacancyId = req.body.vacancyId;
-        const vacancyPromise = Vacancy.findById(vacancyId);
+        const vacancyPromise = Vacancy.findById(vacancyId).exec();
         // Находим заявку
         var [err, application] = await to(
             Application.findOne({
@@ -609,6 +617,9 @@ module.exports = {
         if (application.sender === 'company') {
             return res.status(400).send('student cannot cancel company\'s request');
         }
+        if (application.activityState === 'deleted') {
+            return res.status(403).send('deleted application cannot be canceled');
+        }
 
         // Находим задачу в списке текущих
         var vacancy;
@@ -622,7 +633,8 @@ module.exports = {
         // Если задача нашлась в списке текущих и айди работника над задачей
         // совпадает с айди делающего запрос, то значит он работает над ней.
         // И, отменить заявку он уже не может.
-        if (vacancy.activityState === 'ongoing' && vacancy.freelancerId === req.account._id.toString()) {
+        if (vacancy.state === 'ongoing' &&
+                vacancy.freelancer._id.toString() === req.account._id.toString()) {
             return res.status(400).send('freelancer working on the task cannot cancel it');
         }
 
@@ -640,6 +652,7 @@ module.exports = {
     },
 
     // Компания отклоняет заявку студента
+    // WARNING: DONE
     companyRejectApplication: async (req, res, next) => {
         const { vacancyId, studentId } = req.body;
         const vacancyPromise = Vacancy.findOne({
@@ -699,6 +712,7 @@ module.exports = {
     },
 
     // Студент отклоняет заявку компании
+    // WARNING: DONE
     studentRejectApplication: async (req, res, next) => {
         const { vacancyId } = req.body;
         const studentId = req.account._id.toString();
@@ -763,13 +777,14 @@ module.exports = {
     // req.body: {
     //     vacancyId: String
     // }
+    // WARNING: DONE
     companyRevokeApplication: async (req, res, next) => {
         let returnError;
         const { vacancyId } = req.body;
 
         // Находим задачу
         var [err, task] = await to(
-            Vacancy.findById(vacancyId)
+            Vacancy.findById(vacancyId).populate('company')
         );
         if (err) {
             return next(err);
@@ -780,8 +795,8 @@ module.exports = {
 
             return next(returnError);
         }
-        if (task.state !== 'ongoing' || !task.freelancerId) {
-            returnError = new Error(`you cannot cancel ${task.state} task`);
+        if (task.state !== 'ongoing' || !task.freelancer) {
+            returnError = new Error(`you cannot revoke ${task.state} task`);
             returnError.state = 403;
 
             return next(returnError);
@@ -792,7 +807,7 @@ module.exports = {
         [err, currentApplication] = await to(
             Application.findOne({
                 vacancyId,
-                studentId: task.freelancerId
+                studentId: task.freelancer._id
             })
         );
         if (err) {
@@ -814,7 +829,7 @@ module.exports = {
 
         // Меняем статус задачи и удаляем фрилансера из задачи
         task.state = 'pending';
-        task.freelancerId = undefined;
+        task.freelancer = undefined;
 
         [err, task] = await to(
             task.save()
@@ -886,14 +901,15 @@ module.exports = {
     // req.body: {
     //     states: [enum('pending', 'ongoing', 'completed', 'deleted')]
     // }
+    // WARNING: DONE
     getCompanyTasks: async (req, res, next) => {
         const [err, tasks] = await to(
             Vacancy.find({
-                companyId: req.account._id,
+                company: req.account._id,
                 state: {
                     '$in': req.body.states
                 }
-            })
+            }).populate('company').populate('freelancer')
         );
         if (err) {
             return next(err);
@@ -920,14 +936,15 @@ module.exports = {
     // Заметка:
     // Смысла отправлять запрос по статусу 'pending' и 'deleted' нет, так как фрилансеры не
     // значатся в задачах с такими статусами, но технически сделать такой запрос можно
+    // WARNING: DONE
     getFreelancerTasks: async (req, res, next) => {
         const [err, tasks] = await to(
             Vacancy.find({
-                freelancerId: req.account._id,
+                freelancer: req.account._id,
                 state: {
                     '$in': req.body.states
                 }
-            })
+            }).populate('company').populate('freelancer')
         );
         if (err) {
             return next(err);
@@ -1003,7 +1020,7 @@ module.exports = {
                 "_id": {
                     "$in": vacancyIds
                 }
-            })
+            }).populate('freelancer')
         );
         if (err) {
             return res.status(500).json({error: err.message});

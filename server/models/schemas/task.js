@@ -40,15 +40,20 @@ const taskSchema = mongoose.Schema({
     cost: Number,
     vacancyField: String,
     vacancyName: String,
-    companyId: String,
-    companyName: String,
+    company: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'company',
+    },
     deadline: Date,
     state: {
         type: String,
         enum: ['pending', 'ongoing', 'completed', 'deleted'],
         default: 'pending',
     },
-    freelancerId: String,
+    freelancer: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'student',
+    },
     startDate: {
         type: Date,
         default: Date.now
