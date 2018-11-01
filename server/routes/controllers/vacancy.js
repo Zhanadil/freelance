@@ -912,17 +912,31 @@ module.exports = {
         return res.status(200).json({status: "ok"});
     },
 
-    // Get all vacancies related to this company, based on status written in request.
-    getCompanyVacancies: async (req, res, next) => {
-        Vacancy.find({
-            companyId: req.account._id,
-            state: "pending",
-        }, (err, vacancies) => {
-            if (err) {
-                return next(err);
-            }
-            return res.status(200).json({vacancies: vacancies});
+    // Get all vacancies related to this company, based on states
+    getCompanyTasks: async (req, res, next) => {
+        const [err, tasks] = await to(
+            Vacancy.find({
+                companyId: req.account._id,
+                state: {
+                    '$in': req.body.states
+                }
+            })
+        );
+        if (err) {
+            return next(err);
+        }
+
+        let response = {
+            pending: [],
+            ongoing: [],
+            completed: [],
+            deleted: [],
+        };
+        tasks.forEach((vacancy) => {
+            response[vacancy.state].push(vacancy);
         });
+
+        return res.status(200).send(response);
     },
 
     // Возвращает все заявки связанные с компанией и всю информацию о вакансиях
