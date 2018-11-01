@@ -196,58 +196,58 @@ module.exports = {
 
         return res.status(200).send(application);
     },
-/*
-    completeTask: async (req, res, next) => {
-        // Находим все заявки и текущую задачу
-        const applicationsPromise = Application.find({
-            vacancyId: req.body.vacancyId
-        }).lean().exec();
-        const taskPromise = OngoingTask.findById(vacancyId).exec();
 
-        var [err, applications] = await to(
-            applicationsPromise
-        );
-        if (err) {
-            return res.status(500).send(err.message);
-        }
-        var task;
+    completeTask: async (req, res, next) => {
+        let err;
+        const vacancyId = req.body.vacancyId;
+
+        // Находим задачу которую нужно выполнить
+        let task;
         [err, task] = await to(
-            taskPromise
+            Vacancy.findById(vacancyId)
         );
         if (err) {
-            return res.status(500).send(err.message);
+            return next(err);
         }
         if (!task) {
-            return res.status(400).send('task not found');
+            err = new Error('task not found');
+            err.status = 404;
+
+            return next(err);
+        }
+        if (task.state !== 'ongoing') {
+            err = new Error(`task state is ${task.state}, cannot change`);
+            err.status = 403;
+
+            return next(err);
         }
 
-        // Физически не удаляем все заявки, а переносим в другую коллекцию
-        // скрытую от пользователей
-        const insertDeletedApplicationsPromise =
-            DeletedApplication.insertMany(applications, {ordered: false});
-
-        [err] = await to(
-            insertDeletedApplicationsPromise
+        // Помечаем задачу, как законченая.
+        task.state = 'completed';
+        [err, task] = await to(
+            task.save()
         );
         if (err) {
-            return res.status(500).send(err.message);
+            return next(err);
         }
 
-        // Удаляем все из старой коллекции
-        const deleteApplicationsPromise = Application.deleteMany({
-            vacancyId: req.body.vacancyId
-        }).exec();
+        // TODO: перевести деньги на счет фрилансера
 
+        // Удаляем все заявки из списка
         [err] = await to(
-            deleteApplicationsPromise
+            Application.updateMany({
+                vacancyId
+            }, {
+                activityState: 'deleted'
+            })
         );
         if (err) {
-            return res.status(500).send(err.message);
+            return next(err);
         }
 
-        return res.status(200).send('completed');
-    }
-*/
+        return res.status(200).send(task);
+    },
+
     // Студент отправляет заявку на вакансию
     // req.body: {
     //      vacancyId: String,
