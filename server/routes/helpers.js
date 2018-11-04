@@ -23,7 +23,7 @@ const resetPasswordSchema = joi.object().keys({
 const newVacancySchema = joi.object().keys({
     description: joi.string().allow(""),
     demands: joi.array().items(joi.string()),
-    cost: joi.number(),
+    cost: joi.number().required(),
     vacancyField: joi.string().required(),
     vacancyName: joi.string().required(),
     deadline: joi.date().min('now').required(),
@@ -116,6 +116,10 @@ const employeeSignupSchema = joi.object().keys({
     password: joi.string().required(),
 });
 
+const withdrawBalanceSchema = joi.object().keys({
+    cardNumber: joi.string().creditCard(),
+});
+
 module.exports = {
     // Helper that checks that request body corresponds to a schema
     validateBody: (schema) => {
@@ -160,5 +164,6 @@ module.exports = {
         deleteQuestionSetSchema,
         updateQuestionSetSchema,
         employeeSignupSchema,
+        withdrawBalanceSchema,
     },
 };

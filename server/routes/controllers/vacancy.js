@@ -1,11 +1,12 @@
 const JWT = require('jsonwebtoken');
 
 const to = require('await-to-js').default;
+const config = require('config');
 
 const { Company } = require('@models/company');
 const Student = require('@models/student');
 const { Application, Vacancy } = require('@models/vacancy');
-const JWT_SECRET = require('config').get('JWT_SECRET');
+const JWT_SECRET = config.get('JWT_SECRET');
 
 statusId = (requester, status, sender) => {
     if (status === "pending" && sender !== requester) {
@@ -49,21 +50,33 @@ module.exports = {
     newVacancy: async (req, res, next) => {
         var details = req.body;
 
-        // Find Company which creates the vacancy.
         const company = req.account;
+        if (company.credentials.balance.active < req.body.cost) {
+            return res.status(403).send('your balance is too low');
+        }
 
         details.companyId = company.id;
         details.companyName = company.name;
 
         // Create new vacancy.
-        new Vacancy(details).save((err, vacancy) => {
-            if (err) {
-                next(err);
-            }
+        let [err, vacancy] = await to(
+            new Vacancy(details).save()
+        );
+        if (err) {
+            next(err);
+        }
 
-            return res.status(200).json({
-                vacancy
-            });
+        company.credentials.balance.active -= req.body.cost;
+        company.credentials.balance.inactive += req.body.cost;
+        [err] = await to(
+            company.save()
+        );
+        if (err) {
+            next(err);
+        }
+
+        return res.status(200).json({
+            vacancy
         });
     },
 
@@ -111,6 +124,16 @@ module.exports = {
             }, {
                 activityState: 'deleted'
             })
+        );
+        if (err) {
+            return next(err);
+        }
+
+        const company = req.account;
+        company.credentials.balance.active += vacancy.cost;
+        company.credentials.balance.inactive -= vacancy.cost;
+        [err] = await to(
+            company.save()
         );
         if (err) {
             return next(err);
@@ -223,7 +246,6 @@ module.exports = {
     },
 
     // Компания помечает задачу как законченая.
-    // TODO: снять деньги со счета и перевести на счет фрилансера
     completeTask: async (req, res, next) => {
         let err;
         const vacancyId = req.body.vacancyId;
@@ -258,7 +280,33 @@ module.exports = {
             return next(err);
         }
 
-        // TODO: перевести деньги на счет фрилансера
+        [err, freelancer] = await to(
+            Student.findById(task.freelancerId)
+            .select('+credentials.balance.active')
+        );
+        if (err) {
+            return next(err);
+        }
+
+        const company = req.account;
+        freelancer.credentials.balance.active += task.cost;
+        company.credentials.balance.inactive -= task.cost;
+
+        // Сохраняем баланс фрилансера
+        [err] = await to(
+            freelancer.save()
+        );
+        if (err) {
+            return next(err);
+        }
+
+        // Сохраняем баланс компании
+        [err] = await to(
+            company.save()
+        );
+        if (err) {
+            return next(err);
+        }
 
         // Удаляем все заявки из списка
         [err] = await to(
@@ -785,6 +833,16 @@ module.exports = {
             returnError.state = 403;
 
             return next(returnError);
+        }
+
+        const revokePenalty = Math.round(task.cost * config.get('COMMISSION_RATE'));
+        req.account.credentials.balance.active -= revokePenalty;
+
+        [err] = await to(
+            req.account.save()
+        );
+        if (err) {
+            return next(err);
         }
 
         // Находим заявку фрилансера который работает над задачей

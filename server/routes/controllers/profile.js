@@ -4,6 +4,7 @@ const { Company } = require('@models/company');
 const Student = require('@models/student');
 const Questionnaire = require('@models/questionnaire');
 const helpers = require('@controllers/helpers');
+const mailer = require('@lib/mailer');
 
 const to = require('await-to-js').default;
 
@@ -11,7 +12,7 @@ unnestCompany = function(company) {
     var result = company.toObject();
     result.email = company.credentials.email;
     result.confirmed = company.credentials.confirmed;
-    result.credentials = undefined;
+    result.credentials.password = undefined;
     return result;
 }
 
@@ -25,7 +26,7 @@ unnestStudent = function(student) {
     }
     result.email = student.credentials.email;
     result.confirmed = student.credentials.confirmed;
-    result.credentials = undefined;
+    result.credentials.password = undefined;
     return result;
 }
 
@@ -492,6 +493,21 @@ module.exports = {
                 return res.status(200).send({status: 'ok'});
         	});
         }
+    },
+
+    // Студент совершает запрос на снятие баланса, нам на почту отправляется
+    // запрос с балансом студента и его номер карты
+    // req.body: {
+    //     cardNumber: string
+    // }
+    studentWithdrawBalance: (req, res, next) => {
+        mailer.withdrawBalance(
+            req.user.credentials.email,
+            req.body.cardNumber,
+            req.user.credentials.balance.active
+        );
+
+        return res.sendStatus(200);
     },
 
     // Создать(обновить если существует) ответ на вопрос

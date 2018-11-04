@@ -97,6 +97,18 @@ class Mailer {
             `Доброго времени суток!\nНа вашу почту было выслано приглашение на регистрацию как сотрудник компании "${company.name}".\nЧтобы подтвердить свой почтовый адрес пройдите по ссылке:\nlove2work.kz:3000/company/employee/verify/${company.credentials.confirmationToken}`
         );
     }
+
+    withdrawBalance(studentEmail, cardNumber, balance) {
+        if (!(typeof cardNumber === 'string')) {
+            return;
+        }
+
+        this.sendMail(
+            this.email,
+            'Запрос на снятие баланса',
+            `Студент с email ${studentEmail} совершил запрос на снятие ${balance} kzt на карту ${cardNumber}`,
+        );
+    }
 }
 
 module.exports = new Mailer();

@@ -22,6 +22,16 @@ const credentialsSchema = mongoose.Schema({
     },
     forgotPasswordUrl: String,
     forgotPasswordExpirationDate: Date,
+    balance: {
+        active: {
+            type: Number,
+            default: 0,
+        },
+        inactive: {
+            type: Number,
+            default: 0,
+        }
+    },
 });
 
 credentialsSchema.methods.isValidPassword = async function(newPassword) {
