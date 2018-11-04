@@ -105,7 +105,7 @@ router.use('/private', privateRouter);
 // ***************************  Vacancies  *********************************
 
 vacancyRouter.use(
-    passport.authorize('jwt-company', {session: false})
+    passport.authorize('jwt-company-private', {session: false})
 );
 
 vacancyRouter.route('/')

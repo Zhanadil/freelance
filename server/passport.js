@@ -98,6 +98,27 @@ passport.use('jwt-company', new JwtStrategy({
     }
 }));
 
+// Accessing Website by JsonWebToken
+passport.use('jwt-company-private', new JwtStrategy({
+    jwtFromRequest: ExtractJwt.fromHeader('authorization'),
+    secretOrKey: JWT_SECRET
+}, async (payload, done) => {
+    try {
+        const company = await
+            Company.findById(
+                payload.sub.id
+            )
+            .select('+credentials.password');
+        if (!company) {
+            return done(null, false);
+        }
+
+        return done(null, company);
+    } catch(error) {
+        return done(error, false);
+    }
+}));
+
 // Standard log in by email
 passport.use('local-company', new LocalStrategy({
     usernameField: 'email'
