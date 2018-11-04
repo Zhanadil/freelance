@@ -44,7 +44,9 @@ const studentVacancyApplicationSchema = joi.object().keys({
 const companyVacancyApplicationSchema = studentVacancyApplicationSchema.keys({
     studentId: joi.string().required()
 });
-const completeTaskSchema = studentVacancyApplicationSchema;
+const completeTaskSchema = studentVacancyApplicationSchema.keys({
+    rating: joi.number().min(0).max(5).required(),
+});
 const companyRevokeApplicationSchema = studentVacancyApplicationSchema;
 const studentAnswerSchema = joi.object().keys({
     answers: joi.array().items(joi.string()),

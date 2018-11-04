@@ -12,7 +12,6 @@ unnestCompany = function(company) {
     var result = company.toObject();
     result.email = company.credentials.email;
     result.confirmed = company.credentials.confirmed;
-    result.credentials.password = undefined;
     return result;
 }
 
