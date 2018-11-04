@@ -249,6 +249,7 @@ module.exports = {
     completeTask: async (req, res, next) => {
         let err;
         const vacancyId = req.body.vacancyId;
+        const rating = req.body.rating;
 
         // Находим задачу которую нужно выполнить
         let task;
@@ -280,9 +281,19 @@ module.exports = {
             return next(err);
         }
 
+        let application;
+        [err, application] = await to(
+            Application.findOne({
+                vacancyId,
+                studentId: task.freelancerId,
+            })
+        );
+        if (err) {
+            return next(err);
+        }
+
         [err, freelancer] = await to(
             Student.findById(task.freelancerId)
-            .select('+credentials.balance.active')
         );
         if (err) {
             return next(err);
@@ -290,6 +301,11 @@ module.exports = {
 
         const company = req.account;
         freelancer.credentials.balance.active += task.cost;
+        freelancer.rating.companyReviews.push({
+            application: application._id,
+            task: task._id,
+            points: rating
+        });
         company.credentials.balance.inactive -= task.cost;
 
         // Сохраняем баланс фрилансера
@@ -845,6 +861,7 @@ module.exports = {
             return next(err);
         }
 
+        const FreelancerPromise = Student.findById(task.freelancerId).exec();
         // Находим заявку фрилансера который работает над задачей
         var currentApplication;
         [err, currentApplication] = await to(
@@ -892,6 +909,26 @@ module.exports = {
                 console.log(err);
             }
         });
+
+        let freelancer;
+        [err, freelancer] = await to(
+            FreelancerPromise
+        );
+        if (err) {
+            return next(err);
+        }
+        freelancer.rating.companyReviews.push({
+            application: currentApplication._id,
+            task: task._id,
+            points: 0,
+        });
+
+        [err] = await to(
+            freelancer.save()
+        );
+        if (err) {
+            return next(err);
+        }
 
         return res.status(200).json({
             task

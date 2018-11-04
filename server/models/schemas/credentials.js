@@ -39,11 +39,7 @@ credentialsSchema.methods.isValidPassword = async function(newPassword) {
         return false;
     }
 
-    try {
-        return await bcrypt.compare(newPassword, this.password);
-    } catch(error) {
-        throw new Error(error);
-    }
+    return await bcrypt.compare(newPassword, this.password);
 }
 
 module.exports = credentialsSchema;
