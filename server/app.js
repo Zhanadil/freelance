@@ -9,6 +9,7 @@ const fileUpload = require('express-fileupload');
 const cors = require('cors');
 const JWT = require('jsonwebtoken');
 const http = require('http');
+const https = require('https');
 const ip = require('ip');
 const mkdirp = require('mkdirp');
 
@@ -28,18 +29,27 @@ class App {
         let JWT_SECRET = this.JWT_SECRET = config.get('JWT_SECRET');
         this.env = process.env.NODE_ENV;
         this.port = process.env.PORT || 3000;
+        this.httpsPort = process.env.HTTPS_PORT || 3443;
         this.host = process.env.HOST || ip.address();
         this.logs_directory = config.get('LOGS_DIRECTORY');
         this.resources_directory = config.get('RESOURCES_DIRECTORY');
+        this.privateKey = fs.readFileSync('/etc/letsencrypt/live/love2work.kz/privkey.pem', 'utf8');
+        this.certificate = fs.readFileSync('/etc/letsencrypt/live/love2work.kz/fullchain.pem', 'utf8');
+        this.sslCredentials = {
+            key: privateKey,
+            cert: certificate
+        };
 
         // Создаем папки с логами и ресурсами если их нет.
         this.ensureDirectories();
 
         this.express = Express();
-        this.server = http.createServer(this.express);
+        this.httpServer = http.createServer(this.express);
+        this.httpsServer = https.createServer(sslCredentials, this.express);
 
         // Инициализируем сокетный сервер
-        applySockets(this.server);
+        applySockets(this.httpServer);
+        applySockets(this.httpsServer);
 
         mailer.init(
             'znurtoleuov@gmail.com',
