@@ -7,5 +7,7 @@
     "JWT_SECRET": "htJIPMqj9PlWjm4iF7Npcmgu3FPt9Sy0gcIrDFRJ",
     "COMMISSION_RATE": 0.07,
     "MODERATE_NUMBER_OF_REVIEWS": 10,
-    "RATING_MEAN_VS_QUANTITY_BIAS": 0.5
+    "RATING_MEAN_VS_QUANTITY_BIAS": 0.5,
+    "email": "__",
+    "mail_password": "__"
 }
