@@ -36,8 +36,8 @@ class App {
         this.privateKey = fs.readFileSync('/etc/letsencrypt/live/love2work.kz/privkey.pem', 'utf8');
         this.certificate = fs.readFileSync('/etc/letsencrypt/live/love2work.kz/fullchain.pem', 'utf8');
         this.sslCredentials = {
-            key: privateKey,
-            cert: certificate
+            key: this.privateKey,
+            cert: this.certificate
         };
 
         // Создаем папки с логами и ресурсами если их нет.
@@ -45,15 +45,15 @@ class App {
 
         this.express = Express();
         this.httpServer = http.createServer(this.express);
-        this.httpsServer = https.createServer(sslCredentials, this.express);
+        this.httpsServer = https.createServer(this.sslCredentials, this.express);
 
         // Инициализируем сокетный сервер
         applySockets(this.httpServer);
         applySockets(this.httpsServer);
 
         mailer.init(
-            'znurtoleuov@gmail.com',
-            '3.3&d6Q,oL'
+            config.get('email'),
+            config.get('mail_password')
         );
 
         // Подключаем базу данных
